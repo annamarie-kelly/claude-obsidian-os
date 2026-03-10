@@ -1,0 +1,14 @@
+# Obsidian
+.obsidian/
+
+# Claude Code auto-memory (personal)
+.claude/memory/
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Assets (images pasted into Obsidian)
+# Uncomment if you don't want to track images:
+# assets/

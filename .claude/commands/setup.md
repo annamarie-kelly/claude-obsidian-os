@@ -6,11 +6,20 @@ Walk the user through setting up their Personal OS vault. Ask questions, customi
 
 Ask:
 1. **What do you do?** (role, company, domain) — this shapes the CLAUDE.md context and domain folders
-2. **What are your main life domains?** The defaults are Building (making things), Thinking (intellectual life), Working (business operations), Living (personal), Relating (people). Ask if they want to rename or add any.
+2. **What are your main work areas?** The defaults are Building (making things), Thinking (intellectual life), Working (business operations), Living (personal), Relating (people). Ask if they want to rename or add any. **For each domain they keep or add, ask them to pick an emoji that represents it.** Defaults:
+   - 🔨 Building
+   - 🧠 Thinking
+   - 📋 Working
+   - 🏠 Living
+   - 👤 Relating
+   - 🗂️ Archive
+
+   But they should pick what resonates — a marketer might want 📣 Campaigns instead of 🔨 Building; an investor might want 💰 Deals instead of 📋 Working; a researcher might want 🔬 Research instead of 🧠 Thinking. These emojis appear as **domain markers** in `/loops` and `/commitments` output, so they should be instantly recognizable to the user.
+
 3. **What task manager do you use?** (Linear, Jira, Asana, Todoist, none) — this vault surfaces open loops but real task management lives elsewhere.
 4. **What tags make sense for your work?** Suggest some based on their role.
 
-## Step 2: Customize CLAUDE.md
+## Step 2: Customize CLAUDE.md and domain emojis
 
 Based on their answers, update `CLAUDE.md`:
 - Replace the description with their actual role and context
@@ -18,6 +27,9 @@ Based on their answers, update `CLAUDE.md`:
 - Update the suggested tags list
 - Update the "tasks live in [tool]" reference to their actual task manager
 - Rename any domain folders if they chose different names (and update all references)
+- **Update the domain emoji map** in the "Open Loops — Priority Inference" section of `CLAUDE.md` to reflect their chosen emojis and domain names
+- **Update `.claude/commands/loops.md`** — replace the default domain emoji list with their custom mapping
+- **Update `.claude/commands/commitments.md`** — if it references domain grouping, update there too
 
 ## Step 3: Configure MCP Connectors
 
@@ -163,8 +175,9 @@ Tell them:
 **Your daily rhythm:**
 - Capture to `00-Inbox/` throughout the day (fast, messy, no formatting needed)
 - `/inbox` once to pull from connected tools
-- `/triage` to route and process
-- `/loops` to check open items
+- `/triage` to route and process (investigation requests auto-delegate to background agents)
+- `/loops` to check open items by priority
+- `/commitments` to check what you owe people and what's overdue
 
 **Your weekly rhythm:**
 - `/review` — the metacognition pass (what changed, what's emerging, what's orphaned)
@@ -180,5 +193,6 @@ Tell them:
 - The vault grows by domain, not by project — patterns compound across everything you do
 - Flat until it hurts — don't create structure you don't need yet
 - Link aggressively, tag sparingly
+- Your domain emojis show up in `/loops` and `/commitments` — change them anytime in `CLAUDE.md`
 
 Ask if they have questions or want to adjust anything.

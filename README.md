@@ -4,6 +4,8 @@ An AI-native personal operating system built on Obsidian and Claude Code. It's a
 
 This isn't a note-taking system. It's a thinking system with an AI processing engine on top.
 
+**Built for anyone who thinks for a living** — engineers, investors, analysts, marketers, researchers, operators. If your work involves capturing ideas, tracking commitments, and compounding knowledge across projects and people, this is for you.
+
 ## How It Works
 
 ```
@@ -41,14 +43,15 @@ Every folder can have a `_patterns.md` file — a synthesized knowledge map for 
 
 ## The Commands
 
-Seven slash commands power the system. Each maps to a different cognitive operation:
+Nine slash commands power the system. Each maps to a different cognitive operation:
 
 | Command | What it does | When to use |
 |---|---|---|
-| `/triage` | Route inbox notes to the right domain folders | Multiple times/day |
+| `/triage` | Route inbox notes to the right domain folders; delegate investigations to background agents | Multiple times/day |
 | `/inbox [source]` | Pull external context from MCP sources (calendar, CRM, task board) into inbox | ~Once a day |
 | `/distill` | Extract claim-style patterns from raw input | After learning something |
-| `/loops` | Surface all open `- [ ]` items across the vault | As needed |
+| `/loops` | Surface all open `- [ ]` items, sorted by inferred priority with domain emojis | As needed |
+| `/commitments` | Track what you owe people and what they owe you — grouped by urgency and person | As needed |
 | `/conductor` | Scan git worktrees for in-progress branches, stashes, uncommitted work | As needed |
 | `/find-connections` | Find orphaned notes and suggest missing links | Maintenance |
 | `/review` | Weekly synthesis: what changed, what's emerging, promote pattern seeds | Once a week |
@@ -56,9 +59,10 @@ Seven slash commands power the system. Each maps to a different cognitive operat
 ### `/triage` — The Workhorse
 
 The most-used command. Reads everything in `00-Inbox/` and for each note:
-- Determines what type it is (pattern, reference, project update, action item, person note, brain dump)
+- Determines what type it is (pattern, reference, project update, action item, person note, investigation request, brain dump)
 - Routes it to the right domain folder with proper frontmatter
 - Extracts action items as `- [ ]` checkboxes (so they surface in `/loops`)
+- **Delegates investigation requests to background agents** — captures like "research competitor pricing" or "look into X framework" get kicked off as async research that writes a structured report to `02-Thinking/reports/`
 - Cross-links to related notes
 - Asks before deleting the original
 
@@ -83,11 +87,27 @@ The metacognition engine. Takes raw input (brain dump, conversation excerpt, mee
 
 Each pattern note gets a lifecycle: `seed` → `growing` → `evergreen`. The `/review` command prompts you to promote patterns as they mature.
 
-### `/loops` — Open Items Dashboard
+### `/loops` — Open Items Dashboard (Priority-Inferred)
 
-Scans every `.md` file for unchecked `- [ ]` tasks, groups them by source, flags stale items (7+ days), and numbers them so you can say "close 3, 6" or "escalate 2 to Linear."
+Scans every `.md` file for unchecked `- [ ]` tasks and **infers priority from natural language** — no tags or annotations needed:
 
-Tasks live in your task management tool (Linear, Jira, etc.) — loops are the thinking-layer items that surface during writing and capture.
+- **🔴 Now** — due today/tomorrow, "urgent", "blocking", "pressing", overdue deadlines
+- **🟡 Soon** — due this week, active projects, no urgency signal
+- **🟢 Someday** — "depends on", "brainstorm", "explore", stale items, `@waiting`
+
+Priority is **time-aware**: "due Thursday" on a Wednesday is 🔴 Now, but on a Monday it's 🟡 Soon. Each sub-group gets a **domain emoji** (🔨 Building, 🧠 Thinking, 📋 Working, 🏠 Living, 👤 Relating) so you can see at a glance which area of your life each item belongs to.
+
+Actions: close (auto-closes linked task manager tickets via MCP), move, escalate, delete, bump up/down.
+
+### `/commitments` — Relationship Tracker
+
+A different lens on the same `- [ ]` data, filtered for **interpersonal obligations**. Answers: "What do I owe people? What do people owe me?"
+
+Detects commitment signals (person names, deadlines, "promised", "waiting on", `@waiting`) and groups by urgency:
+
+- **⚠️ Overdue** → **🔴 Due Today/Tomorrow** → **📅 This Week** → **📆 Coming Up** → **🔄 Waiting On Others** → **📋 Undated**
+
+Within each urgency level, items are grouped by person. Use `/loops` for the priority view, `/commitments` for the relationship view.
 
 ### `/conductor` — Git Worktree Scanner
 
@@ -105,6 +125,21 @@ The synthesis pass. Assumes triage and loops have already been run. Focuses on:
 - What seeds are ready to promote to `growing` or `evergreen`
 - What notes are orphaned and need connecting
 - What felt neglected
+
+## Background Agents & Reports
+
+One of the most powerful patterns: **turning quick inbox captures into full research reports without blocking your workflow.**
+
+When `/triage` encounters an investigation request ("investigate X", "look into Y", "research Z"), it:
+1. Spins up a background agent to research the topic
+2. The agent uses available tools (MCP integrations, web search, codebase search)
+3. Writes a structured report to `02-Thinking/reports/` using `Templates/Report.md`
+4. Links the report back to the triggering project or note
+5. Deletes the inbox note after kickoff
+
+This means your inbox can contain both quick tasks ("send invoice") and deep questions ("research how competitors handle onboarding") — triage handles both, routing investigations to async research while you keep working.
+
+Reports follow a standard structure: Context, Key Findings, Evidence, Connections, Open Questions. They become permanent reference notes in your vault, cross-linked to the projects and patterns they relate to.
 
 ## The Frontmatter Schema
 
@@ -169,8 +204,9 @@ Everything the setup configures is just markdown files — you can edit any of i
 Your daily rhythm:
 - **Capture** to `00-Inbox/` throughout the day (fast, messy, no formatting needed)
 - **`/inbox`** once to pull from connected tools (if configured)
-- **`/triage`** to route and process inbox notes
-- **`/loops`** to check open items
+- **`/triage`** to route and process inbox notes (investigations auto-delegate to background agents)
+- **`/loops`** to check open items by priority
+- **`/commitments`** to check what you owe people and what's overdue
 
 Your weekly rhythm:
 - **`/review`** — the metacognition pass (what changed, what's emerging, what's orphaned)
@@ -211,3 +247,9 @@ Every command in `.claude/commands/` is a markdown file that Claude Code reads a
 **Why separate `/triage` and `/inbox`?** Triage is fast and frequent (process what's already captured). Inbox pull is slow and daily (gather external context). Different cadences, different commands.
 
 **Why `- [ ]` for loops instead of a task manager?** These aren't managed tasks — they're open items that surface during thinking. The real task manager (Linear, Jira, Todoist) handles execution. This handles the thinking layer above it.
+
+**Why infer priority instead of tagging?** Inline tags like `#now` or `#someday` are noise in your notes. The system reads natural language signals ("due Thursday", "blocking", "brainstorm") and the current date to sort automatically. Zero annotation overhead.
+
+**Why two views (`/loops` and `/commitments`)?** Same underlying data, different questions. `/loops` answers "what should I work on?" (priority view). `/commitments` answers "what do I owe people?" (relationship view). Both read `- [ ]` items — one groups by urgency/domain, the other by person/deadline.
+
+**Why background agents for research?** Because "look into X" shouldn't block your triage flow. Delegating investigations to async agents means your inbox can contain both 5-second tasks and 5-minute research questions — triage handles both without slowing down.

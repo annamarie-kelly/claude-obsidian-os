@@ -17,7 +17,7 @@ This vault is **personal**. Tasks live in your task manager (Linear, Jira, etc.)
 06-Loops/          → Auto-generated open items dashboard (read-only lens)
 07-Archive/        → Done/dead/inactive. Never deleted.
 Templates/         → Note templates
-.claude/commands/  → Slash commands: /triage, /distill, /loops, /review
+.claude/commands/  → Slash commands: /triage, /distill, /loops, /commitments, /review
 ```
 
 ### The `_patterns.md` Convention
@@ -74,6 +74,36 @@ Ask: "What domain of my life does this belong to?"
 - Personal life → `04-Living/`
 - About a person → `05-Relating/`
 - Not sure yet → `00-Inbox/`
+
+## Open Loops — Priority Inference
+
+`/loops` infers priority from natural language — no tags or annotations needed. The system reads task text and context to sort items into 🔴 Now / 🟡 Soon / 🟢 Someday.
+
+**How it works:**
+- Tasks with deadlines are ranked by proximity to today's date
+- Day names are resolved relative to the current day ("due Thursday" on Wednesday = 🔴 Now, on Monday = 🟡 Soon)
+- Keywords like "urgent", "blocking", "pressing" escalate; "brainstorm", "explore", "Phase 3" de-escalate
+- Stale items (7+ days untouched) drift to 🟢 Someday
+- `@waiting` items are always 🟢 (blocked on someone else)
+
+**Domain emojis** on sub-group headers show which life domain each item comes from:
+🔨 Building · 🧠 Thinking · 📋 Working · 🏠 Living · 👤 Relating · 🗂️ Archive
+
+## Commitments — Relationship View
+
+`/commitments` is a separate lens on the same `- [ ]` data, filtered for interpersonal obligations. It answers: "What do I owe people? What do people owe me?"
+
+Groups by urgency (⚠️ Overdue → 🔴 Due Today → 📅 This Week → 📆 Coming Up → 🔄 Waiting → 📋 Undated), then by person within each group.
+
+## Background Agents & Reports
+
+When `/triage` encounters an investigation request ("investigate X", "research Y"), it delegates to a background agent that:
+1. Researches the topic using available tools (MCP, web, codebase)
+2. Writes a structured report to `02-Thinking/reports/` using `Templates/Report.md`
+3. Links the report back to the triggering project or note
+4. Deletes the inbox note after kickoff
+
+This turns quick inbox captures like "look into competitor pricing models" into full research reports without blocking your workflow.
 
 ## Claude Code Instructions
 

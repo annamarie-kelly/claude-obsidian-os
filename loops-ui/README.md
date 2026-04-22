@@ -25,7 +25,7 @@ The app is plain file I/O: no database, no external auth, no analytics. Everythi
 ### 1. Install
 
 ```bash
-cd tools/loops-ui
+cd loops-ui
 npm install
 ```
 
@@ -64,7 +64,10 @@ Open [`loops.config.json`](./loops.config.json) and edit:
 
 ### 3. Point at your vault
 
-The app defaults to the parent-of-parent directory (`../..`) as the vault root, which is correct if you drop this repo into `tools/loops-ui/` inside your vault. For anything else, set:
+The app defaults to the sibling `../vault-template/` directory — the
+scaffolding that ships with this repo — so `npm run dev` works
+out-of-the-box on a fresh clone. Point it at your own vault once
+you're ready for real data:
 
 ```bash
 export LOOPS_UI_VAULT_ROOT=/absolute/path/to/your/vault
@@ -168,7 +171,7 @@ Close the browser and everything is in your vault. Re-open it and the state is s
 
 ## Connecting a calendar
 
-The week canvas reads `06-Loops/calendar-today.json` and overlays the events as fixed blocks. The file format is (see [`../../06-Loops/README.md`](../../06-Loops/README.md) for full schema):
+The week canvas reads `06-Loops/calendar-today.json` and overlays the events as fixed blocks. The file format is (see [`../vault-template/06-Loops/README.md`](../vault-template/06-Loops/README.md) for full schema):
 
 ```json
 {
@@ -191,7 +194,7 @@ Good for a first week. Edit `06-Loops/calendar-today.json` in your editor whenev
 If your calendar lives in Google, a ~50-line script pulls events and writes the file. Minimal working example:
 
 ```js
-// tools/loops-ui/scripts/sync-gcal.mjs
+// loops-ui/scripts/sync-gcal.mjs
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { google } from 'googleapis';
@@ -239,10 +242,10 @@ await fs.writeFile(
 console.log(`Wrote ${events.length} events to ${OUT}`);
 ```
 
-Install deps (`npm i googleapis` inside `tools/loops-ui/`), set up a [Google Cloud service account](https://developers.google.com/workspace/guides/create-credentials#service-account) with read-only calendar scope, export `GCAL_SERVICE_ACCOUNT_JSON` and `LOOPS_UI_VAULT_ROOT`, then run on a cron:
+Install deps (`npm i googleapis` inside `loops-ui/`), set up a [Google Cloud service account](https://developers.google.com/workspace/guides/create-credentials#service-account) with read-only calendar scope, export `GCAL_SERVICE_ACCOUNT_JSON` and `LOOPS_UI_VAULT_ROOT`, then run on a cron:
 
 ```bash
-*/15 * * * * /usr/local/bin/node /path/to/tools/loops-ui/scripts/sync-gcal.mjs
+*/15 * * * * /usr/local/bin/node /path/to/loops-ui/scripts/sync-gcal.mjs
 ```
 
 The UI polls `calendar-today.json` every 10 seconds while visible, so your canvas updates within a minute of the cron running.
@@ -266,7 +269,7 @@ The app is **file-based**. It reads and writes under your vault's `06-Loops/` di
 | `00-Inbox/manual-loops.md` | no | append (manual loop creation) |
 | any `*.md` in scan folders | yes | yes (flips `- [ ]` ↔ `- [x]`) |
 
-There is **no MCP client, no API key, no external service call**. If you want calendar integration or email / Slack nudges, write `06-Loops/calendar-today.json` yourself — from a cron pulling Google Calendar, a Claude skill, an MCP server, or whatever fits your setup. See [`06-Loops/README.md`](../../06-Loops/README.md) for the calendar schema.
+There is **no MCP client, no API key, no external service call**. If you want calendar integration or email / Slack nudges, write `06-Loops/calendar-today.json` yourself — from a cron pulling Google Calendar, a Claude skill, an MCP server, or whatever fits your setup. See [`06-Loops/README.md`](../vault-template/06-Loops/README.md) for the calendar schema.
 
 ## Vault layout assumptions
 

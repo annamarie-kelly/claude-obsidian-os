@@ -19,8 +19,8 @@
  * preserves the YAML frontmatter Obsidian needs.
  *
  * Usage:
- *   node tools/loops-ui/scripts/notes-index.mjs         # write
- *   node tools/loops-ui/scripts/notes-index.mjs --dry   # stdout preview
+ *   node loops-ui/scripts/notes-index.mjs         # write
+ *   node loops-ui/scripts/notes-index.mjs --dry   # stdout preview
  */
 
 import fs from 'node:fs';
@@ -29,7 +29,9 @@ import url from 'node:url';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const VAULT = path.resolve(__dirname, '../../..');
+const VAULT = process.env.LOOPS_UI_VAULT_ROOT
+  ? path.resolve(process.env.LOOPS_UI_VAULT_ROOT)
+  : path.resolve(__dirname, '../../vault-template');
 const LOOPS_JSON = path.join(VAULT, '06-Loops/loops.json');
 const OUT = path.join(VAULT, '06-Loops/notes.md');
 
@@ -94,7 +96,7 @@ function main() {
   lines.push('# Loop notes index');
   lines.push('');
   lines.push(
-    `Auto-generated from \`06-Loops/loops.json\`. Do not hand-edit — run \`npm --prefix tools/loops-ui run notes-index\` to regenerate. Source of truth for notes is the Tend UI detail drawer; this file is a scannable denormalization so Obsidian search and terminal Claude can find them.`,
+    `Auto-generated from \`06-Loops/loops.json\`. Do not hand-edit — run \`npm --prefix loops-ui run notes-index\` to regenerate. Source of truth for notes is the Tend UI detail drawer; this file is a scannable denormalization so Obsidian search and terminal Claude can find them.`,
   );
   lines.push('');
   lines.push(

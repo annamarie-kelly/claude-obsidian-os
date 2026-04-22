@@ -16,7 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOOPS_UI_ROOT = path.resolve(__dirname, '..');
 const VAULT_ROOT = process.env.LOOPS_UI_VAULT_ROOT
   ? path.resolve(process.env.LOOPS_UI_VAULT_ROOT)
-  : path.resolve(__dirname, '../../..');
+  : path.resolve(__dirname, '../../vault-template');
 const OUT_DIR = path.join(VAULT_ROOT, '06-Loops');
 const OUT = path.join(OUT_DIR, 'loops.json');
 

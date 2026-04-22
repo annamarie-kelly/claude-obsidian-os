@@ -39,7 +39,7 @@ const LOOPS_UI_ROOT = path.resolve(__dirname, '..');
 const VAULT =
   process.env.LOOPS_UI_VAULT_ROOT
     ? path.resolve(process.env.LOOPS_UI_VAULT_ROOT)
-    : path.resolve(__dirname, '../../..');
+    : path.resolve(__dirname, '../../vault-template');
 const LOOPS_JSON = path.join(VAULT, '06-Loops/loops.json');
 
 const SCAN_DIRS = [

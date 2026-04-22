@@ -17,7 +17,7 @@ This vault is **personal**. Tasks live in your task manager (Linear, Jira, etc.)
 06-Loops/          → Auto-generated open items dashboard (read-only lens)
 07-Archive/        → Done/dead/inactive. Never deleted.
 Templates/         → Note templates
-.claude/commands/  → Slash commands: /triage, /distill, /loops, /commitments, /review
+.claude/commands/  → Slash commands: /triage, /distill, /loops, /commitments, /review, /prune, /reindex
 ```
 
 ### The `_patterns.md` Convention
@@ -32,8 +32,9 @@ Every note gets:
 ```yaml
 ---
 created: YYYY-MM-DD
-type: project | pattern | playbook | essay | reference | person | loop | seed
+type: project | pattern | playbook | essay | reference | person | loop | seed | episode | failure | decision | convention | trail
 status: (see below)
+shelf-life: foundational | tactical | observational
 tags: []
 ---
 ```
@@ -42,11 +43,52 @@ tags: []
 - **Pattern notes** (`type: pattern`): `seed` → `growing` → `evergreen`
 - **Everything else**: `active` | `someday` | `done` | `archived`
 
+### Shelf Life
+Controls auto-pruning via `/prune`. Default is `foundational` if omitted.
+- **foundational** — permanent retention. Patterns, decisions, conventions, people, projects
+- **tactical** — 14-day expiration. Session-specific observations, "for now" notes, working state
+- **observational** — 30-day expiration. Time-bounded context, meeting-specific notes, temporary references
+
+`/prune` moves expired notes to `07-Archive/` based on `created` date + shelf-life.
+
+### Record Type Guidance
+When creating a note about something learned, pick the most specific type:
+- **pattern** — a recurring approach that works (e.g. "X beats Y for Z")
+- **failure** — a lesson from something that broke (e.g. "X breaks when Y because Z")
+- **decision** — why you chose X over Y, with rationale preserved
+- **convention** — a rule you follow (formatting, naming, workflow)
+- **episode** — what happened on a specific date (meeting, session, incident)
+- **playbook** — a step-by-step procedure ("How to X")
+- **trail** — a named sequence of wikilinks (a reading path with a purpose)
+- **reference** — pointer to external material
+- **essay** — longer-form thinking piece
+
+Failures and decisions used to get written as patterns, which conflated "observation about the world" with "hard-won lesson from a specific incident." Use the sharper type.
+
 ### `_patterns.md` files get extra fields:
 ```yaml
 scope: building | thinking | working | etc.
 last-distilled: YYYY-MM-DD
 ```
+
+## The Two-Axis Model (Domain × Memory Type)
+
+The vault runs on two axes, not one:
+
+**Axis 1 — Domain** (folders): `01-Building / 02-Thinking / 03-Working / 04-Living / 05-Relating`
+
+**Axis 2 — Memory type** (via `type:` frontmatter):
+- **Episodic** (what happened when) — `type: episode`
+- **Semantic** (what I know) — `type: pattern | decision | failure | convention | essay | reference`
+- **Procedural** (how to do things) — `type: playbook`
+
+Every note gets BOTH a folder AND a memory type. This makes cross-axis queries tractable: "show me all failures across building and working," "find procedural notes in 03-Working," "what episodes produced this pattern."
+
+The consolidation loop — distilling episodic captures into semantic patterns — is the highest-value workflow in the vault. Your `/distill` command is already this.
+
+**Exception:** `02-Thinking/` is structurally semantic-only by design. It's the durable thinking layer — patterns, essays, references, meta-observations. Episodic content about thinking belongs in `02-Thinking/episodic/` (a sub-carve-out for daily session records) or in the domain where the thinking was applied.
+
+**Why two axes:** with one axis (domain only), the vault is a topical index. With two axes, it becomes a queryable memory system. The cost is tiny (one frontmatter field per note). The value is compound.
 
 ## Conventions
 

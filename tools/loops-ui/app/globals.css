@@ -1,0 +1,266 @@
+@import "tailwindcss";
+
+/*  Design tokens — Part 2 of the Loops visual redesign spec.
+    Surfaces feel like warm paper (light) or warm charcoal (dark).
+    Accents pull from the app's earthy palette; never saturated. */
+
+:root {
+  /* ─── Accent palette (stable across themes) ───────────────────── */
+  --rose: #C4827A;
+  --sage: #6B7D6B;
+  --berry: #A0696B;
+  --slate: #7E9BA6;
+  --tan: #A89968;
+  --mauve: #7D6872;
+
+  --rose-fill: rgba(196, 130, 122, 0.12);
+  --sage-fill: rgba(107, 125, 107, 0.12);
+  --berry-fill: rgba(160, 105, 107, 0.12);
+  --slate-fill: rgba(126, 155, 166, 0.15);
+  --tan-fill: rgba(168, 153, 104, 0.12);
+  --mauve-fill: rgba(125, 104, 114, 0.12);
+
+  /* ─── Typography ───────────────────────────────────────────── */
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+}
+
+/* ─── Light theme (default) ──────────────────────────────────── */
+:root,
+:root[data-theme="light"] {
+  --surface-page: #FAF8F5;
+  --surface-card: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --surface-inset: #EDE9E4;
+  --border-default: #E8E4DF;
+  --border-subtle: #F0ECE7;
+  --border-hover: #D0CBC4;
+
+  --text-primary: #3D3835;
+  --text-secondary: #6B6560;
+  --text-tertiary: #9B958E;
+  --text-ghost: #B5AFA8;
+
+  --rose-text: #7A4A44;
+  --sage-text: #3D5A3D;
+  --berry-text: #6B3E40;
+  --slate-text: #4A6A75;
+  --tan-text: #6B5E30;
+  --mauve-text: #5A4550;
+}
+
+/* ─── Dark theme ─────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark; /* makes native scrollbars + form controls dark */
+
+  --surface-page: #1C1A18;
+  --surface-card: #2A2826;
+  --surface-elevated: #343230;
+  --surface-inset: #222120;
+  --border-default: #4A4744;
+  --border-subtle: #3A3836;
+  --border-hover: #5A5650;
+
+  /* Brightened ink ramp — the previous values read as dim mud on the
+     dark surface, especially for secondary/tertiary text. */
+  --text-primary: #F2EEE9;
+  --text-secondary: #CFC9C2;
+  --text-tertiary: #9E9891;
+  --text-ghost: #7D7872;
+
+  /* Brightened accent bases so dots, borders, and progress bars
+     read against #1C1A18 without becoming saturated. Soft ramps. */
+  --rose: #D4928A;
+  --sage: #8A9D8A;
+  --berry: #B8797B;
+  --slate: #97B4BE;
+  --tan: #C4B47C;
+  --mauve: #9B8595;
+
+  /* Heavier fills so tinted blocks, drop ghosts, and pills have
+     real presence on dark surfaces. */
+  --rose-fill: rgba(212, 146, 138, 0.18);
+  --sage-fill: rgba(138, 157, 138, 0.18);
+  --berry-fill: rgba(184, 121, 123, 0.18);
+  --slate-fill: rgba(151, 180, 190, 0.20);
+  --tan-fill: rgba(196, 180, 124, 0.18);
+  --mauve-fill: rgba(155, 133, 149, 0.22);
+
+  --rose-text: #EAB9B3;
+  --sage-text: #B2C9B2;
+  --berry-text: #D6A5A6;
+  --slate-text: #B2CCD7;
+  --tan-text: #D8CE93;
+  --mauve-text: #BBA3AF;
+}
+
+/* ─── System preference fallback when no data-theme is set ──── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+
+    --surface-page: #1C1A18;
+    --surface-card: #2A2826;
+    --surface-elevated: #343230;
+    --surface-inset: #222120;
+    --border-default: #4A4744;
+    --border-subtle: #3A3836;
+    --border-hover: #5A5650;
+
+    --text-primary: #F2EEE9;
+    --text-secondary: #CFC9C2;
+    --text-tertiary: #9E9891;
+    --text-ghost: #7D7872;
+
+    --rose: #D4928A;
+    --sage: #8A9D8A;
+    --berry: #B8797B;
+    --slate: #97B4BE;
+    --tan: #C4B47C;
+    --mauve: #9B8595;
+
+    --rose-fill: rgba(212, 146, 138, 0.18);
+    --sage-fill: rgba(138, 157, 138, 0.18);
+    --berry-fill: rgba(184, 121, 123, 0.18);
+    --slate-fill: rgba(151, 180, 190, 0.20);
+    --tan-fill: rgba(196, 180, 124, 0.18);
+    --mauve-fill: rgba(155, 133, 149, 0.22);
+
+    --rose-text: #EAB9B3;
+    --sage-text: #B2C9B2;
+    --berry-text: #D6A5A6;
+    --slate-text: #B2CCD7;
+    --tan-text: #D8CE93;
+    --mauve-text: #BBA3AF;
+  }
+}
+
+/*  Map semantic tokens into Tailwind 4's theme so classes like
+    bg-page, text-ink, border-edge just work inside components. */
+@theme inline {
+  --color-page: var(--surface-page);
+  --color-card: var(--surface-card);
+  --color-elevated: var(--surface-elevated);
+  --color-inset: var(--surface-inset);
+  --color-edge: var(--border-default);
+  --color-edge-subtle: var(--border-subtle);
+  --color-edge-hover: var(--border-hover);
+
+  --color-ink: var(--text-primary);
+  --color-ink-soft: var(--text-secondary);
+  --color-ink-faint: var(--text-tertiary);
+  --color-ink-ghost: var(--text-ghost);
+
+  --color-rose: var(--rose);
+  --color-sage: var(--sage);
+  --color-berry: var(--berry);
+  --color-slate-accent: var(--slate);
+  --color-tan: var(--tan);
+  --color-mauve: var(--mauve);
+
+  --color-rose-fill: var(--rose-fill);
+  --color-sage-fill: var(--sage-fill);
+  --color-berry-fill: var(--berry-fill);
+  --color-slate-fill: var(--slate-fill);
+  --color-tan-fill: var(--tan-fill);
+  --color-mauve-fill: var(--mauve-fill);
+
+  --color-rose-text: var(--rose-text);
+  --color-sage-text: var(--sage-text);
+  --color-berry-text: var(--berry-text);
+  --color-slate-text: var(--slate-text);
+  --color-tan-text: var(--tan-text);
+  --color-mauve-text: var(--mauve-text);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Warm selection highlight — default system blue/pink was clashing
+   with the earthy palette, especially on pre-selected textarea text. */
+::selection {
+  background: var(--mauve-fill);
+  color: var(--text-primary);
+}
+::-moz-selection {
+  background: var(--mauve-fill);
+  color: var(--text-primary);
+}
+
+/* Remove the default textarea resize grabber — still resizable but
+   without the UA-styled corner artifact. */
+textarea {
+  resize: vertical;
+}
+
+/* Reset button appearance so our utility styles win over UA defaults. */
+button {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-ghost) 40%, transparent);
+  border-radius: 3px;
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-ghost) 70%, transparent);
+}
+
+/* Always-visible variant for surfaces where overflow is frequent
+   and the user needs an at-a-glance scroll position (e.g. the Plan
+   sidebar loop drawer). Wider thumb + visible track background. */
+.scrollbar-visible {
+  scrollbar-gutter: stable;
+}
+.scrollbar-visible::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--text-ghost) 8%, transparent);
+  border-radius: 5px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-ghost) 55%, transparent);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-ghost) 80%, transparent);
+  background-clip: padding-box;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

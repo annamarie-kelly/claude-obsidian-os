@@ -5,7 +5,7 @@ status: active
 
 # `06-Loops/` — Open items dashboard
 
-This folder is the **loops ledger** for your vault: a derived, queryable view of every unfinished `- [ ]` item scattered across your notes, plus session state for the companion Loops UI (`tools/loops-ui/`).
+This folder is the **loops ledger** for your vault: a derived, queryable view of every unfinished `- [ ]` item scattered across your notes, plus session state for the companion Loops UI (`loops-ui/` at the repo root).
 
 ## Files
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const VAULT_ROOT = process.env.LOOPS_UI_VAULT_ROOT
   ? path.resolve(process.env.LOOPS_UI_VAULT_ROOT)
-  : path.resolve(process.cwd(), '../..');
+  : path.resolve(process.cwd(), '../vault-template');
 const WINDOW = 7; // lines before/after target
 
 export async function GET(request: Request) {

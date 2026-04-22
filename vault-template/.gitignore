@@ -1,0 +1,13 @@
+# Obsidian app state
+.obsidian/
+
+# Claude Code per-project settings + auto-memory (personal)
+.claude/memory/
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Pasted images (uncomment if you don't want them tracked)
+# assets/

@@ -24,7 +24,7 @@ export function resolveVaultRoot(): string {
   if (process.env.LOOPS_UI_VAULT_ROOT) {
     return path.resolve(process.env.LOOPS_UI_VAULT_ROOT);
   }
-  return path.resolve(process.cwd(), '../..');
+  return path.resolve(process.cwd(), '../vault-template');
 }
 
 export function loopsJsonPath(root: string = resolveVaultRoot()): string {

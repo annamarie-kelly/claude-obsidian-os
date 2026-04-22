@@ -7,7 +7,7 @@ import path from 'node:path';
 // Route accepts ?start=YYYY-MM-DD&end=YYYY-MM-DD and filters events to the range.
 const VAULT_ROOT = process.env.LOOPS_UI_VAULT_ROOT
   ? path.resolve(process.env.LOOPS_UI_VAULT_ROOT)
-  : path.resolve(process.cwd(), '../..');
+  : path.resolve(process.cwd(), '../vault-template');
 const CAL_PATH = path.join(VAULT_ROOT, '06-Loops/calendar-today.json');
 
 interface RawEvent {

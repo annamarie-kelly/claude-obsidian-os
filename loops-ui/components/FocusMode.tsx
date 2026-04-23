@@ -10,12 +10,13 @@
 // Step 2 (focus): title, progress bar, notes jot surface, Done. Esc or
 // "Back to picker" returns to step 1.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CalendarFile,
   ContextFile,
   Loop,
   LoopNote,
+  SpecStatus,
 } from '@/lib/types';
 import { formatMinutes, todayISO } from '@/lib/types';
 import {
@@ -25,6 +26,7 @@ import {
   stripInlineMarkdown,
   WORK_MODE_META,
 } from '@/lib/ui';
+import { renderMarkdown } from '@/lib/renderMarkdown';
 import { CloseGateModal, type CloseGateProceedResult } from './CloseGateModal';
 
 export type FocusKind =
@@ -263,12 +265,6 @@ function relativeShort(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function breadcrumbOf(loop: Loop): string {
-  const parts = loop.source.file.split('/');
-  parts.pop();
-  return parts.join(' / ');
-}
-
 // Split a loop's text into a short headline and an optional body.
 // Preference order for the split point:
 //   1. The first " — " / " -- " em-dash separator (common pattern)
@@ -302,52 +298,37 @@ function splitHeadline(text: string): { headline: string; body: string } {
   };
 }
 
-// Render a text blob with URLs auto-linkified. Tiny helper — the
-// detail drawer does more elaborate markdown rendering, but for the
-// focus body we only care about making URLs clickable so the user
-// can jump to referenced docs without opening the source file.
-function renderLinkified(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const re = /(https?:\/\/[^\s)]+)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    parts.push(
-      <a
-        key={key++}
-        href={m[1]}
-        target="_blank"
-        rel="noreferrer"
-        className="text-mauve-text underline decoration-dotted underline-offset-2 hover:decoration-solid"
-      >
-        {m[1]}
-      </a>,
-    );
-    last = m.index + m[1].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
-}
-
 export function FocusMode({
   loops,
+  allLoops,
   onUpdateLoop,
   onCloseLoop,
+  initialPickId,
+  onClearInitialPick,
+  onPlanViaChat,
+  onSpecViaChat,
+  onDecomposeViaChat,
+  onHandoffViaChat,
 }: {
   loops: Loop[]; // active-only
-  allLoops?: Loop[]; // unused in the picker flow — kept for prop compat
-  calendar?: CalendarFile | null; // unused
-  context?: ContextFile | null; // unused
-  onOpenDetail?: (id: string) => void; // unused
+  allLoops?: Loop[];
+  calendar?: CalendarFile | null;
+  context?: ContextFile | null;
+  onOpenDetail?: (id: string) => void;
   onUpdateLoop: (id: string, patch: Partial<Loop>) => Promise<void>;
-  onAddToNextOpenSlot?: (id: string) => void; // unused
-  onScheduleRemainder?: (id: string) => void; // unused
+  onAddToNextOpenSlot?: (id: string) => void;
+  onScheduleRemainder?: (id: string) => void;
   onCloseLoop: (id: string) => Promise<void>;
-  onDropLoop?: (id: string) => Promise<void> | void; // unused
-  onSplitBlock?: (id: string, idx: number) => Promise<void>; // unused
-  onRemoveBlock?: (id: string, idx: number) => Promise<void>; // unused
+  onDropLoop?: (id: string) => Promise<void> | void;
+  onSplitBlock?: (id: string, idx: number) => Promise<void>;
+  onRemoveBlock?: (id: string, idx: number) => Promise<void>;
+  /** Pre-select this loop (e.g. coming from Design's Focus button) */
+  initialPickId?: string | null;
+  onClearInitialPick?: () => void;
+  onPlanViaChat?: (title: string) => void;
+  onSpecViaChat?: (filePath: string) => void;
+  onDecomposeViaChat?: (filePath: string) => void;
+  onHandoffViaChat?: (filePath: string) => void;
 }) {
   const [nowMin, setNowMin] = useState<number>(() => {
     const d = new Date();
@@ -380,7 +361,16 @@ export function FocusMode({
   const nextOffset = offset + PAGE >= allClusters.length ? 0 : offset + PAGE;
   const hasMore = allClusters.length > PAGE;
 
-  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [pickedId, setPickedId] = useState<string | null>(initialPickId ?? null);
+
+  // Honor initialPickId from parent (e.g. Design's Focus button)
+  useEffect(() => {
+    if (initialPickId) {
+      setPickedId(initialPickId);
+      onClearInitialPick?.();
+    }
+  }, [initialPickId, onClearInitialPick]);
+
   // Auto-jump to the active timeblock's loop whenever Focus mode is
   // idle on the picker. "Back to picker" stashes the loop id in
   // dismissedActiveId so we don't immediately bounce back into it — but
@@ -420,6 +410,14 @@ export function FocusMode({
     if (pickedId && !picked) setPickedId(null);
   }, [pickedId, picked]);
 
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  // Reset editing when switching loops or returning to picker
+  useEffect(() => {
+    setEditing(false);
+  }, [pickedId]);
+
   // Keyboard: 1–5 picks a candidate while on the picker. Esc returns
   // from focus to picker. Ignored while typing in the notes textarea.
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
@@ -431,6 +429,14 @@ export function FocusMode({
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable);
+
+      // Esc in edit mode exits edit, not the picker
+      if (e.key === 'Escape' && picked && editing) {
+        e.preventDefault();
+        setEditing(false);
+        return;
+      }
+
       if (typing) return;
       if (!picked) {
         const n = Number(e.key);
@@ -448,9 +454,7 @@ export function FocusMode({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [picked, clusters]);
-
-  const [closeOpen, setCloseOpen] = useState(false);
+  }, [picked, clusters, editing]);
 
   if (!picked) {
     // ─── Step 1: project cluster picker ───────────────────────────
@@ -579,13 +583,27 @@ export function FocusMode({
     );
   }
 
-  // ─── Step 2: focus ────────────────────────────────────────────────
+  // ─── Step 2: focus (full-context execution surface) ─────────────────
   const { loop, tb } = picked;
   const est = loop.timeEstimateMinutes;
+  const sourceFile = loop.source?.file ?? '';
 
-  // Progress bar: if an active block is running, show elapsed/total of
-  // that block. Otherwise show 0 over the estimate (or nothing if
-  // neither exists).
+  // Sibling loops: all loops (including done) sharing the same source file
+  const allSiblings = useMemo(() => {
+    if (!sourceFile) return [];
+    return (allLoops ?? loops).filter((l) => l.source?.file === sourceFile);
+  }, [allLoops, loops, sourceFile]);
+
+  const activeSiblingCount = allSiblings.filter((l) => !l.done).length;
+  const doneSiblingCount = allSiblings.filter((l) => l.done).length;
+
+  // Spec status: parse from fetched content frontmatter (set by FocusSpecContent)
+  const [specStatus, setSpecStatus] = useState<SpecStatus | null>(null);
+
+  const isSpec = sourceFile.includes('Agent Specs');
+  const isBuildingOrShipped = specStatus === 'building' || specStatus === 'shipped';
+
+  // Progress bar
   let barPct = 0;
   let barColor = 'var(--mauve)';
   let barLabel = '';
@@ -604,60 +622,276 @@ export function FocusMode({
     barLabel = `${formatMinutes(est)} estimate`;
   }
 
+  // Obsidian deep link
+  const obsidianUrl = sourceFile
+    ? `obsidian://open?vault=${encodeURIComponent('obsidian-vault')}&file=${encodeURIComponent(sourceFile.replace(/\.md$/, ''))}`
+    : '';
+
+  const { headline } = splitHeadline(loop.text);
+
   return (
-    <main className="flex-1 min-h-0 flex items-start justify-center overflow-y-auto scrollbar-subtle">
-      <div className="w-full max-w-2xl px-10 pt-16 pb-20 relative">
+    <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-surface">
+      {/* ─── Sticky header bar ─────────────────────────────────────── */}
+      <div className="px-4 py-3 flex items-center gap-2 border-b border-edge shrink-0">
+        {/* Back button */}
         <button
           type="button"
           onClick={() => {
-            // Stash the dismissed loop id so auto-jump respects the
-            // user's choice to stay on the picker for this active
-            // block. If a new active block starts, we'll re-jump.
-            if (picked) setDismissedActiveId(picked.loop.id);
+            setDismissedActiveId(loop.id);
             setPickedId(null);
           }}
-          className="absolute top-6 right-10 text-[10px] text-ink-ghost hover:text-ink-soft transition-colors"
+          className="text-ink-ghost hover:text-ink text-[12px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
+          title="Back to picker"
         >
-          ← Back to picker
+          &larr;
         </button>
 
-        <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost mb-3 font-mono">
-          {breadcrumbOf(loop)}
-        </div>
-        <FocusHeadline text={loop.text} />
-
-
-        {barLabel && (
-          <div className="mb-10">
-            <div className="h-[4px] rounded-full bg-inset overflow-hidden">
-              <div
-                className="h-full transition-all duration-300"
-                style={{
-                  width: `${Math.max(2, barPct)}%`,
-                  background: barColor,
-                }}
-              />
-            </div>
-            <div className="mt-2 text-[10px] text-ink-ghost tabular-nums font-mono">
-              {barLabel}
-            </div>
+        {/* Title + filepath */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[13px] font-medium text-ink truncate">{headline}</h3>
+          <div className="text-[10px] text-ink-ghost mt-0.5 flex items-center gap-2">
+            <span className="truncate">{sourceFile}</span>
+            {specStatus && (
+              <span className={`px-1.5 py-[1px] rounded-full text-[9px] font-medium ${
+                specStatus === 'drafting' ? 'bg-tan-fill text-tan-text' :
+                specStatus === 'ready' ? 'bg-sage-fill text-sage-text' :
+                specStatus === 'building' ? 'bg-[var(--ocean,#7A9AA0)]/20 text-[var(--ocean,#7A9AA0)]' :
+                'bg-inset text-ink-ghost'
+              }`}>
+                {specStatus}
+              </span>
+            )}
           </div>
-        )}
+        </div>
 
-        <FocusNotes
-          loop={loop}
-          notesRef={notesRef}
-          onUpdateLoop={onUpdateLoop}
-        />
+        {/* Stage-appropriate action buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Edit toggle */}
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            className={`text-[10px] font-medium px-2.5 py-1 rounded-md border transition-colors ${
+              editing
+                ? 'text-ink bg-inset border-edge-hover'
+                : 'text-ink-soft bg-transparent border-edge hover:border-edge-hover hover:text-ink'
+            }`}
+          >
+            {editing ? 'Viewing' : 'Edit'}
+          </button>
 
-        <div className="mt-10 flex items-center">
+          {/* Stage buttons */}
+          {!isBuildingOrShipped && (
+            <>
+              {activeSiblingCount <= 1 ? (
+                <>
+                  {onPlanViaChat && (
+                    <button
+                      type="button"
+                      onClick={() => onPlanViaChat(loop.text)}
+                      className="text-[10px] font-medium text-[var(--sand,#C5B39A)] bg-[var(--sand,#C5B39A)]/10 hover:bg-[var(--sand,#C5B39A)]/15 px-2.5 py-1 rounded-md border border-[var(--sand,#C5B39A)]/20 hover:border-[var(--sand,#C5B39A)]/40 transition-colors"
+                    >
+                      /plan
+                    </button>
+                  )}
+                  {onSpecViaChat && (
+                    <button
+                      type="button"
+                      onClick={() => onSpecViaChat(sourceFile)}
+                      className="text-[10px] font-medium text-[var(--ocean,#7A9AA0)] bg-[var(--ocean,#7A9AA0)]/10 hover:bg-[var(--ocean,#7A9AA0)]/15 px-2.5 py-1 rounded-md border border-[var(--ocean,#7A9AA0)]/20 hover:border-[var(--ocean,#7A9AA0)]/40 transition-colors"
+                    >
+                      /spec
+                    </button>
+                  )}
+                  {onDecomposeViaChat && (
+                    <button
+                      type="button"
+                      onClick={() => onDecomposeViaChat(sourceFile)}
+                      className="text-[10px] font-medium text-[var(--mauve)] bg-mauve-fill hover:bg-mauve-fill/70 px-2.5 py-1 rounded-md border border-[var(--mauve)]/20 hover:border-[var(--mauve)]/40 transition-colors"
+                    >
+                      /decompose
+                    </button>
+                  )}
+                </>
+              ) : (
+                onHandoffViaChat && (
+                  <button
+                    type="button"
+                    onClick={() => onHandoffViaChat(sourceFile)}
+                    className="text-[10px] font-medium text-sage-text bg-sage-fill hover:bg-sage-fill/70 px-2.5 py-1 rounded-md border border-[var(--sage)]/20 hover:border-[var(--sage)]/40 transition-colors"
+                  >
+                    /handoff
+                  </button>
+                )
+              )}
+            </>
+          )}
+
+          {/* Done */}
           <button
             type="button"
             onClick={() => setCloseOpen(true)}
-            className="px-4 py-2 rounded-md bg-sage-fill text-sage-text border-[0.5px] border-sage text-[13px] hover:brightness-110 transition"
+            className="px-2.5 py-1 rounded-md bg-sage-fill text-sage-text border-[0.5px] border-sage text-[10px] font-medium hover:brightness-110 transition"
           >
             Done
           </button>
+
+          {/* Obsidian link */}
+          {obsidianUrl && (
+            <a
+              href={obsidianUrl}
+              className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
+              title="Open in Obsidian"
+            >
+              &#x2197;
+            </a>
+          )}
+
+          <span className="text-[9px] text-ink-ghost ml-1">esc &rarr; picker</span>
+        </div>
+      </div>
+
+      {/* ─── Progress bar (thin, full-width) ───────────────────────── */}
+      {barLabel && (
+        <div className="shrink-0">
+          <div className="h-[4px] bg-inset overflow-hidden">
+            <div
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${Math.max(2, barPct)}%`,
+                background: barColor,
+              }}
+            />
+          </div>
+          <div className="px-5 mt-1 text-[10px] text-ink-ghost tabular-nums font-mono">
+            {barLabel}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Scrollable content area ───────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-subtle">
+        <div className="max-w-3xl mx-auto px-5 py-4 pb-20">
+          {/* Spec content */}
+          {sourceFile && (
+            <FocusSpecContent
+              filePath={sourceFile}
+              editing={editing}
+              onStopEditing={() => setEditing(false)}
+              onStatusParsed={setSpecStatus}
+            />
+          )}
+
+          {/* ─── Sibling loops list ──────────────────────────────────── */}
+          {allSiblings.length > 1 && (
+            <section className="mt-8 mb-8">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost">
+                  Tasks
+                </div>
+                <span className="text-[10px] text-ink-ghost tabular-nums font-mono">
+                  {doneSiblingCount}/{allSiblings.length} done
+                </span>
+              </div>
+
+              {/* Thin progress bar for siblings */}
+              <div className="h-[3px] rounded-full bg-inset overflow-hidden mb-3">
+                <div
+                  className="h-full bg-sage-fill transition-all duration-300"
+                  style={{ width: `${allSiblings.length > 0 ? (doneSiblingCount / allSiblings.length) * 100 : 0}%` }}
+                />
+              </div>
+
+              <ul className="flex flex-col gap-1">
+                {/* Active siblings first, done at bottom */}
+                {[...allSiblings]
+                  .sort((a, b) => {
+                    if (a.done && !b.done) return 1;
+                    if (!a.done && b.done) return -1;
+                    return 0;
+                  })
+                  .map((sib) => {
+                    const isPicked = sib.id === loop.id;
+                    const sibEst = sib.timeEstimateMinutes;
+                    return (
+                      <li
+                        key={sib.id}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-[12px] transition-colors cursor-pointer ${
+                          isPicked
+                            ? 'border border-[var(--sage)] bg-sage-fill/20'
+                            : 'border border-transparent hover:bg-inset/60'
+                        } ${sib.done ? 'opacity-50' : ''}`}
+                        onClick={() => {
+                          if (!sib.done && sib.id !== loop.id) {
+                            setPickedId(sib.id);
+                          }
+                        }}
+                      >
+                        {/* Checkbox */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!sib.done) {
+                              void onCloseLoop(sib.id);
+                            }
+                          }}
+                          className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
+                            sib.done
+                              ? 'bg-sage-fill border-[var(--sage)] text-sage-text'
+                              : 'border-edge hover:border-[var(--sage)]'
+                          }`}
+                          disabled={sib.done}
+                        >
+                          {sib.done && <span className="text-[10px]">&#10003;</span>}
+                        </button>
+
+                        {/* Text */}
+                        <span className={`flex-1 min-w-0 truncate leading-snug ${
+                          sib.done ? 'line-through text-ink-ghost' : 'text-ink'
+                        }`}>
+                          {stripInlineMarkdown(sib.text)}
+                        </span>
+
+                        {/* Status dot */}
+                        {!sib.done && (
+                          <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${
+                            sib.blocked ? 'bg-[var(--rose)]' : 'bg-sage-fill'
+                          }`} />
+                        )}
+
+                        {/* pLevel pill */}
+                        {sib.pLevel && !sib.done && (
+                          <span className={`text-[9px] font-mono px-1.5 py-[1px] rounded shrink-0 ${pPillClass(sib.pLevel)}`}>
+                            {sib.pLevel}
+                          </span>
+                        )}
+
+                        {/* Time estimate */}
+                        {sibEst != null && !sib.done && (
+                          <span className="text-[10px] text-ink-ghost font-mono tabular-nums shrink-0">
+                            {formatMinutes(sibEst)}
+                          </span>
+                        )}
+
+                        {/* "this one" indicator */}
+                        {isPicked && (
+                          <span className="text-[9px] text-sage-text font-medium shrink-0">
+                            current
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+              </ul>
+            </section>
+          )}
+
+          {/* ─── Notes ───────────────────────────────────────────────── */}
+          <FocusNotes
+            loop={loop}
+            notesRef={notesRef}
+            onUpdateLoop={onUpdateLoop}
+          />
         </div>
       </div>
 
@@ -668,44 +902,11 @@ export function FocusMode({
         onProceed={async (_result: CloseGateProceedResult) => {
           setCloseOpen(false);
           await onCloseLoop(loop.id);
-          // Clear dismissal: the loop is gone, so if the next active
-          // block points elsewhere (or is the same id stashed earlier)
-          // we should jump fresh.
           setDismissedActiveId(null);
           setPickedId(null);
         }}
       />
     </main>
-  );
-}
-
-// ─── Headline + collapsible body ──────────────────────────────────────
-
-function FocusHeadline({ text }: { text: string }) {
-  const { headline, body } = useMemo(() => splitHeadline(text), [text]);
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="mb-8">
-      <h1 className="text-[28px] text-ink leading-snug">{headline}</h1>
-      {body && (
-        <div className="mt-3">
-          <p
-            className={`text-[13px] text-ink-soft leading-relaxed whitespace-pre-wrap ${
-              expanded ? '' : 'line-clamp-2'
-            }`}
-          >
-            {renderLinkified(body)}
-          </p>
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="mt-2 text-[10px] text-ink-ghost hover:text-ink-soft transition-colors"
-          >
-            {expanded ? 'show less' : 'show more'}
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -765,7 +966,7 @@ function FocusNotes({
             void submit();
           }
         }}
-        placeholder="Jot as you work… ⌘↵ to save"
+        placeholder="Jot as you work... Cmd+Enter to save"
         rows={4}
         className="w-full resize-none px-3 py-2 rounded-md bg-inset border-[0.5px] border-edge text-[13px] text-ink placeholder:text-ink-ghost focus:outline-none focus:border-[var(--mauve)] transition-colors"
       />
@@ -780,6 +981,187 @@ function FocusNotes({
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+// ─── Spec content area (full-context, with edit mode + vault links) ──────
+
+function FocusSpecContent({
+  filePath: initialFilePath,
+  editing,
+  onStopEditing,
+  onStatusParsed,
+}: {
+  filePath: string;
+  editing: boolean;
+  onStopEditing: () => void;
+  onStatusParsed?: (status: SpecStatus | null) => void;
+}) {
+  const [filePath, setFilePath] = useState(initialFilePath);
+  const [content, setContent] = useState<string | null>(null);
+  const [rawContent, setRawContent] = useState<string | null>(null);
+  const [isHtml, setIsHtml] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<string[]>([]);
+  const [editBuffer, setEditBuffer] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Reset when source file changes
+  useEffect(() => {
+    setFilePath(initialFilePath);
+    setHistory([]);
+  }, [initialFilePath]);
+
+  // Fetch content
+  useEffect(() => {
+    setLoading(true);
+    setContent(null);
+    const params = new URLSearchParams({ file: filePath });
+    fetch(`/api/vault/read?${params}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setContent(data.content || '');
+        setRawContent(data.content || '');
+        setIsHtml(data.isHtml ?? filePath.endsWith('.html'));
+        setLoading(false);
+        scrollRef.current?.scrollTo(0, 0);
+
+        // Parse status from frontmatter for the header badge.
+        // The read endpoint strips frontmatter, but we can try to
+        // infer from the content or fetch separately. For now, look
+        // for a "status:" line near the top (some specs have it in body).
+        if (filePath === initialFilePath && onStatusParsed) {
+          const statusMatch = (data.content || '').match(/^status:\s*(drafting|ready|building|shipped)/m);
+          onStatusParsed(statusMatch ? (statusMatch[1] as SpecStatus) : null);
+        }
+      })
+      .catch(() => {
+        setContent('Failed to load spec.');
+        setLoading(false);
+      });
+  }, [filePath, initialFilePath, onStatusParsed]);
+
+  // When entering edit mode, populate buffer
+  useEffect(() => {
+    if (editing && rawContent) {
+      setEditBuffer(rawContent);
+      setDirty(false);
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }, [editing, rawContent]);
+
+  // Save handler
+  const saveEdit = useCallback(async () => {
+    setSaving(true);
+    try {
+      await fetch('/api/vault/write', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: filePath, content: editBuffer }),
+      });
+      setContent(editBuffer);
+      setRawContent(editBuffer);
+      setDirty(false);
+      onStopEditing();
+    } catch {
+      console.error('Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [filePath, editBuffer]);
+
+  // Vault link navigation
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('a[data-vault-link]') as HTMLAnchorElement | null;
+    if (link) {
+      e.preventDefault();
+      const vaultPath = link.getAttribute('data-vault-link');
+      if (vaultPath) {
+        setHistory((prev) => [...prev, filePath]);
+        setFilePath(vaultPath);
+      }
+    }
+  }, [filePath]);
+
+  // Back through vault link history
+  const goBack = useCallback(() => {
+    if (history.length > 0) {
+      const prev = history[history.length - 1];
+      setHistory((h) => h.slice(0, -1));
+      setFilePath(prev);
+    }
+  }, [history]);
+
+  if (loading) {
+    return (
+      <div className="text-[11px] text-ink-ghost animate-pulse pt-4">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!content) return null;
+
+  return (
+    <section ref={scrollRef}>
+      {/* Vault link history back */}
+      {history.length > 0 && (
+        <button
+          type="button"
+          onClick={goBack}
+          className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors mb-2"
+        >
+          &larr; Back to spec
+        </button>
+      )}
+
+      {isHtml && !editing ? (
+        <iframe
+          srcDoc={content}
+          className="w-full border border-edge rounded-lg min-h-[60vh]"
+          sandbox="allow-scripts allow-same-origin"
+          title="Spec content"
+        />
+      ) : editing ? (
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={editBuffer}
+            onChange={(e) => { setEditBuffer(e.target.value); setDirty(true); }}
+            onKeyDown={(e) => {
+              if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                if (dirty) saveEdit();
+              }
+            }}
+            className="w-full min-h-[60vh] text-[12px] text-ink font-mono leading-relaxed bg-inset border border-edge rounded-lg px-4 py-3 outline-none resize-none"
+            spellCheck={false}
+          />
+          {dirty && (
+            <div className="absolute top-2 right-2 flex items-center gap-2">
+              <span className="text-[9px] text-ink-ghost">unsaved</span>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={saving}
+                className="text-[10px] font-medium text-sage-text bg-sage-fill px-2 py-0.5 rounded border border-[var(--sage)]/40 hover:brightness-110 transition disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save (Cmd+S)'}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          onClick={handleContentClick}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+        />
       )}
     </section>
   );

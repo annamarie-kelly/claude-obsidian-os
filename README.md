@@ -8,10 +8,19 @@
 
 - **Reads your whole vault.** Every unchecked `- [ ]` in any markdown file becomes a loop the system tracks.
 - **Infers priority from how you wrote it.** "Due Thursday" on a Wednesday is urgent. "Blocking" escalates. "@waiting" de-escalates. No tags, no labels.
-- **Schedules your week.** Drag a loop onto Tuesday; the system carves a timeblock that routes around the calendar events already on that day. Overcommit is flagged.
+- **Schedules your week.** Drag a loop onto any day (Mon–Sun); the system carves a timeblock that routes around the calendar events already on that day. Overcommit is flagged.
 - **Protects your attention.** Capacity gates block you from queueing a ninth P1 before you drop one. Configurable ceilings for your primary stakeholder (default 8) and your own priorities (default 5).
 - **Round-trips through markdown.** Close a loop in the app → the source markdown file's `- [ ]` flips to `- [x]`. Edit in Obsidian → the scanner picks up the change. Neither side is authoritative over the other; both point at the same files.
-- **Four focused modes.** Triage a new-loop queue card-by-card. Plan the week on a drag-drop canvas. Focus on one loop at a time, vim-style. Reflect on a 30-day pressure heatmap with a weekly stakeholder summary draft.
+- **Six focused modes.** Triage new loops card-by-card. Plan the week on a drag-drop canvas. Focus on one loop at a time. Reflect on a 30-day pressure heatmap. Design with screenshot annotations. Build with a spec kanban.
+
+### New in this release
+
+- **Embedded Claude chat.** A side panel that streams Claude Code with full tool activity, thinking blocks, session persistence, and markdown table rendering. Runs slash commands directly from the chat.
+- **Design board.** Paste or drop screenshots, drag them around, add captions and colored annotations. Save renders a PNG + companion markdown file to the vault. Hit Fix to send the annotated board to Claude for analysis.
+- **Spec kanban.** Drag agent specs through Drafting → Ready → Building → Shipped. Status persists to YAML frontmatter (handles files with or without existing frontmatter). Poll-safe optimistic updates.
+- **Research shelf.** Browse research artifacts from your thinking folder with staleness tracking and source linking to specs.
+- **Full vault API.** Read, write, delete, search, and image endpoints. Specs CRUD with decompose and scaffold routes.
+- **7-day calendar.** Full week view including weekends.
 
 ---
 
@@ -46,10 +55,28 @@ Full setup walkthrough, first-session tour, and calendar-integration examples in
 ```
 loops-os/
 ├── loops-ui/                 The Next.js 16 + React 19 app.
-│   ├── app/                  Routes (one page + 8 API endpoints)
-│   ├── components/           30 components, four-mode dashboard
+│   ├── app/                  Routes (one page + 17 API endpoints)
+│   │   └── api/
+│   │       ├── claude/       SSE streaming to Claude Code CLI
+│   │       ├── loops/        Loop CRUD + event sourcing
+│   │       ├── calendar/     Calendar integration
+│   │       └── vault/        Read, write, delete, search, image,
+│   │                         specs (list, decompose, scaffold),
+│   │                         research docs
+│   ├── components/           40+ components across six modes
+│   │   ├── ClaudeChat        Embedded Claude Code with streaming
+│   │   ├── DesignBoard       Screenshot annotation canvas
+│   │   ├── DesignBench       Spec kanban (drag-and-drop)
+│   │   ├── ResearchShelf     Research artifact browser
+│   │   ├── PlanHub           Research/Build/Design/Schedule tabs
+│   │   ├── FocusMode         Single-loop deep work
+│   │   ├── TriageView        Card-by-card inbox processing
+│   │   ├── WeekCanvas        7-day calendar with timeblocks
+│   │   └── ...               Detail drawers, capacity gates,
+│   │                         heatmaps, reflection view
 │   ├── lib/                  Pure TypeScript — types, config, gates,
-│   │                         events, scheduling, fuzzy-match
+│   │                         events, scheduling, fuzzy-match,
+│   │                         markdown rendering
 │   └── scripts/              Vault scanners + CLI
 ├── vault-template/           The vault scaffolding loops-os was built
 │   │                         around. Copy into your own Obsidian vault,
@@ -70,6 +97,19 @@ Three decoupled parts:
 - **`06-Loops/loops.json`** — the contract between them. Any scanner producing this shape can feed the app.
 
 For the architecture deep-dive — the planning algorithm, the event-sourced write layer, the stakeholder/capacity model, the priority-inference heuristics — see **[AGENTS.md](./AGENTS.md)**. It's also the guide for AI agents walking a new user through onboarding.
+
+---
+
+## The six modes
+
+| Mode | What it does |
+|---|---|
+| **Focus** | Single-loop deep work. Vim-style navigation. Timer optional. |
+| **Plan** | Four tabs: Research (browse thinking notes), Build (spec kanban), Design (screenshot board), Schedule (drag loops onto calendar). |
+| **Triage** | Card-by-card inbox processing. Accept, defer, drop, or snooze. |
+| **Reflect** | 30-day pressure heatmap. Weekly patterns. Stakeholder summary draft. |
+| **Founder** | Beta user tracking, people CRM, runway calculator. |
+| **Claude** | Side panel chat with full Claude Code streaming. Runs vault slash commands, decomposes specs, analyzes design boards. |
 
 ---
 
@@ -112,6 +152,14 @@ cd loops-ui && npm run dev
 ```
 
 The only hard requirement is a `06-Loops/` directory for the ledger (auto-created on first run). The folder conventions above are the scanner's defaults, but any folders you want scanned can be listed in [`loops-ui/loops.config.json`](./loops-ui/loops.config.json) under `vault.scanFolders`.
+
+### Environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `LOOPS_UI_VAULT_ROOT` | Absolute path to your Obsidian vault | `../vault-template` |
+| `LOOPS_SPECS_FOLDER` | Vault-relative path to agent specs | `01-Building/Agent Specs` |
+| `LOOPS_CODEBASE_DOCS` | JSON array of `{dir, repo}` for shipped doc artifacts | `[]` |
 
 ---
 

@@ -660,7 +660,7 @@ function ResearchReader({
       await fetch('/api/vault/write', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: filePath, content: editBuffer }),
+        body: JSON.stringify({ file: filePath, content: editBuffer, raw: true }),
       });
       setContent(editBuffer);
       setEditing(false);

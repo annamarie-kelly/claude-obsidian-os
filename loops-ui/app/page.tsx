@@ -53,6 +53,7 @@ import { TriageView } from '@/components/TriageView';
 import { SomedayView } from '@/components/SomedayView';
 import { ResearchShelf } from '@/components/ResearchShelf';
 import { DesignBench } from '@/components/DesignBench';
+import { DesignBoard } from '@/components/DesignBoard';
 import { PlanHub } from '@/components/PlanHub';
 import { TriageMigrationModal } from '@/components/TriageMigrationModal';
 import { ClaudeChat } from '@/components/ClaudeChat';
@@ -141,14 +142,23 @@ export default function Page() {
     },
     [],
   );
+  const specWriteInFlightRef = useRef(0);
   const { data: polledSpecs } = useVisiblePoll<SpecDoc[]>(
     specsFetcher,
     30_000,
     mode === 'design',
   );
   useEffect(() => {
-    if (polledSpecs) setSpecDocs(polledSpecs);
+    if (polledSpecs && specWriteInFlightRef.current === 0) setSpecDocs(polledSpecs);
   }, [polledSpecs]);
+
+  const refetchSpecs = useCallback(async () => {
+    const res = await fetch('/api/vault/specs', { cache: 'no-cache' });
+    if (res.ok) {
+      const json = await res.json();
+      setSpecDocs(json.specs as SpecDoc[]);
+    }
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -1021,7 +1031,8 @@ export default function Page() {
         }
         case 'Escape': {
           e.preventDefault();
-          if (detailId) setDetailId(null);
+          if (claudeChatOpen) { setClaudeChatOpen(false); }
+          else if (detailId) setDetailId(null);
           else clearSelection();
           break;
         }
@@ -1096,7 +1107,9 @@ export default function Page() {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
         className={`h-screen max-h-screen bg-page text-ink flex flex-col overflow-hidden transition-[padding] duration-200 ${
-          detailId ? 'min-[1400px]:pr-[420px]' : ''
+          detailId && !claudeChatOpen ? 'min-[1400px]:pr-[420px]' : ''
+        } ${
+          claudeChatOpen ? 'pr-[440px]' : ''
         }`}
       >
         <Header
@@ -1233,10 +1246,32 @@ export default function Page() {
                     );
                   }, 200);
                 }}
+                onFocusViaChat={(doc) => {
+                  setClaudeChatOpen(true);
+                  setTimeout(() => {
+                    window.dispatchEvent(
+                      new CustomEvent('claude-chat:send', {
+                        detail: {
+                          prompt: `/focus ${doc.title}`,
+                        },
+                      }),
+                    );
+                  }, 200);
+                }}
               />
             ) : mode === 'design' ? (
               <DesignBench
                 specs={specDocs}
+                onRefetch={refetchSpecs}
+                onUpdateSpecStatus={(specId, newStatus) => {
+                  setSpecDocs((prev) =>
+                    prev.map((s) => (s.id === specId ? { ...s, status: newStatus as any } : s)),
+                  );
+                  specWriteInFlightRef.current += 1;
+                }}
+                onWriteComplete={() => {
+                  specWriteInFlightRef.current = Math.max(0, specWriteInFlightRef.current - 1);
+                }}
                 onDecomposeViaChat={(spec) => {
                   setClaudeChatOpen(true);
                   setTimeout(() => {
@@ -1320,9 +1355,19 @@ export default function Page() {
                 }}
               />
             ) : (
-              <main className="flex-1 min-h-0 flex flex-col items-center justify-center">
-                <p className="text-[12px] text-ink-ghost">Ship Lane — coming in Phase 4</p>
-              </main>
+              <DesignBoard
+                onFix={(imgPath, annotations) => {
+                  const annList = annotations
+                    .filter((a) => a.comment)
+                    .map((a) => `${a.index}. ${a.comment}`)
+                    .join('\n');
+                  const prompt = `/annotation-intake ${imgPath}\n\nAnnotations:\n${annList || '(no comments — review the image)'}`;
+                  setClaudeChatOpen(true);
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('claude-chat:send', { detail: { prompt } }));
+                  }, 300);
+                }}
+              />
             )}
           </PlanHub>
         ) : mode === 'reflect' ? (
@@ -1542,6 +1587,42 @@ export default function Page() {
             focusedId ? data.loops.find((l) => l.id === focusedId) ?? null : null
           }
           specs={specDocs}
+          pageContext={(() => {
+            const parts: string[] = [`Mode: ${mode}`];
+            if (mode === 'focus') {
+              const fl = focusedId ? data.loops.find((l) => l.id === focusedId) : null;
+              if (fl) parts.push(`Focused on: "${fl.text}" (${fl.source.file}), status: ${fl.status}, priority: ${fl.priority ?? fl.pLevel ?? 'none'}`);
+              parts.push(`Active loops: ${activeLoops.length}`);
+            } else if (mode === 'triage') {
+              const triageLoops = data.loops.filter((l) => !l.done && l.status === 'triage');
+              parts.push(`Triage queue: ${triageLoops.length} items`);
+              triageLoops.slice(0, 10).forEach((l) => parts.push(`  - "${l.text}" (${l.source.file})`));
+            } else if (mode === 'backlog') {
+              parts.push(`Backlog: ${activeLoops.length} active loops`);
+              const byGroup = new Map<string, number>();
+              activeLoops.forEach((l) => { const g = l.subGroup || 'ungrouped'; byGroup.set(g, (byGroup.get(g) || 0) + 1); });
+              byGroup.forEach((count, group) => parts.push(`  - ${group}: ${count}`));
+            } else if (mode === 'research' || mode === 'design') {
+              if (mode === 'research') {
+                parts.push(`Research shelf: ${researchDocs.length} docs`);
+                researchDocs.slice(0, 8).forEach((d) => parts.push(`  - "${d.title}" (${d.filePath}, ${d.staleDays}d old)`));
+              } else {
+                parts.push(`Design bench: ${specDocs.length} specs`);
+                specDocs.forEach((s) => parts.push(`  - "${s.title}" [${s.status}] ${s.linkedLoopCount} loops (${s.filePath})`));
+              }
+            } else if (mode === 'plan') {
+              parts.push(`Plan mode — week canvas with ${activeLoops.filter((l) => l.timeblocks.length > 0).length} scheduled loops`);
+            } else if (mode === 'reflect') {
+              const done = data.loops.filter((l) => l.done).length;
+              const stale = activeLoops.filter((l) => { if (!l.updatedAt) return false; return Date.now() - new Date(l.updatedAt).getTime() > 7 * 86400000; }).length;
+              parts.push(`Reflect: ${activeLoops.length} active, ${done} done, ${stale} stale`);
+            }
+            if (detailId) {
+              const dl = data.loops.find((l) => l.id === detailId);
+              if (dl) parts.push(`Detail drawer open for: "${dl.text}" (${dl.source.file})`);
+            }
+            return parts.join('\n');
+          })()}
         />
 
         {/* Claude chat trigger */}

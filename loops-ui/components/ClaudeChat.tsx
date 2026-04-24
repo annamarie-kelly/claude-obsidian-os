@@ -150,10 +150,14 @@ function renderResponseText(text: string): string {
   // Headers
   out = out.replace(/^### (.+)$/gm, '<h3 class="text-[12px] font-semibold text-ink mt-3 mb-1">$1</h3>');
   out = out.replace(/^## (.+)$/gm, '<h2 class="text-[13px] font-semibold text-ink mt-4 mb-1.5">$1</h2>');
-  // List items
+  // Numbered list items
+  out = out.replace(/^(\d+)\. (.+)$/gm, '<div class="flex gap-1.5 ml-2"><span class="text-ink-ghost shrink-0">$1.</span><span>$2</span></div>');
+  // Bullet list items
   out = out.replace(/^- (.+)$/gm, '<div class="flex gap-1.5 ml-2"><span class="text-ink-ghost shrink-0">-</span><span>$1</span></div>');
   // Paragraphs (double newline)
   out = out.replace(/\n\n/g, '</p><p class="mt-1.5">');
+  // Single newlines → line breaks (for sentences that stream without double-newlines)
+  out = out.replace(/\n/g, '<br/>');
   return `<p>${out}</p>`;
 }
 
@@ -166,6 +170,7 @@ export function ClaudeChat({
   allLoops,
   focusedLoop,
   specs,
+  pageContext,
 }: {
   open: boolean;
   onClose: () => void;
@@ -173,6 +178,7 @@ export function ClaudeChat({
   allLoops: Loop[];
   focusedLoop: Loop | null;
   specs: SpecDoc[];
+  pageContext?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -183,6 +189,44 @@ export function ClaudeChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const queuedPromptRef = useRef<string | null>(null);
+
+  // ── Persist chat state to localStorage ──
+  const LS_CHAT = 'loops-ui:chat-state';
+
+  // Restore on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_CHAT);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.sessionId) setSessionId(saved.sessionId);
+        if (Array.isArray(saved.messages) && saved.messages.length > 0) {
+          // Clean up interrupted streams: remove empty assistant messages,
+          // clear isThinking/activity flags from stale state
+          const cleaned = (saved.messages as Message[])
+            .filter((m) => m.role === 'user' || m.text || m.thinking)
+            .map((m) => m.role === 'assistant' ? { ...m, isThinking: false, activity: null } : m);
+          setMessages(cleaned);
+          if (cleaned.length > 0) setShowActions(false);
+          messageCountRef.current = cleaned.filter((m) => m.role === 'user').length;
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Save on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_CHAT, JSON.stringify({
+        sessionId,
+        messages: messages.map((m) => ({
+          id: m.id, role: m.role, text: m.text,
+          thinking: m.thinking, timestamp: m.timestamp,
+        })),
+      }));
+    } catch {}
+  }, [messages, sessionId]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -202,7 +246,7 @@ export function ClaudeChat({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !streaming) onClose();
+      if (e.key === 'Escape' && !streaming) { e.stopImmediatePropagation(); onClose(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -210,7 +254,12 @@ export function ClaudeChat({
 
   const sendPrompt = useCallback(
     async (prompt: string) => {
-      if (!prompt.trim() || streaming) return;
+      if (!prompt.trim()) return;
+      if (streaming) {
+        // Queue it — will be sent when current stream finishes
+        queuedPromptRef.current = prompt.trim();
+        return;
+      }
 
       const userMsg: Message = {
         id: Math.random().toString(36).slice(2),
@@ -249,9 +298,16 @@ export function ClaudeChat({
       }
       messageCountRef.current += 1;
 
+      // On first message in a session, prepend page context so Claude
+      // knows what the user is looking at right now.
+      let fullPrompt = prompt.trim();
+      if (isFirst && pageContext) {
+        fullPrompt = `[Page context — the user is currently viewing this in the Loops UI:\n${pageContext}]\n\n${fullPrompt}`;
+      }
+
       try {
         await streamClaude(
-          prompt.trim(),
+          fullPrompt,
           (event) => {
             // Capture session ID from the result event
             if (event.type === 'session') {
@@ -313,6 +369,12 @@ export function ClaudeChat({
       } finally {
         setStreaming(false);
         abortRef.current = null;
+        // Send queued follow-up if one was typed while streaming
+        const queued = queuedPromptRef.current;
+        if (queued) {
+          queuedPromptRef.current = null;
+          setTimeout(() => sendPrompt(queued), 100);
+        }
       }
     },
     [streaming, sessionId],
@@ -381,18 +443,18 @@ export function ClaudeChat({
             setShowActions(true);
             setSessionId(null);
             messageCountRef.current = 0;
+            try { localStorage.removeItem(LS_CHAT); } catch {}
           }}
           className="text-[10px] text-ink-ghost hover:text-ink px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
           title="Clear chat"
         >
           Clear
         </button>
-        <span className="text-[9px] text-ink-ghost">esc</span>
         <button
           type="button"
           onClick={onClose}
           className="text-ink-ghost hover:text-ink text-[14px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
-          title="Close (Esc)"
+          title="Close"
         >
           &#x2715;
         </button>
@@ -461,28 +523,6 @@ export function ClaudeChat({
               </div>
             ) : (
               <div className="space-y-0">
-                {/* Activity indicator — shows what Claude is doing */}
-                {(msg.isThinking || msg.activity) && streaming && messages[messages.length - 1]?.id === msg.id && (
-                  <div className="flex items-center gap-2 py-2 mb-1">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--mauve)] opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--mauve)]" />
-                    </span>
-                    <span className="text-[10px] text-[var(--mauve)] italic">
-                      {msg.activity
-                        ? msg.activity.startsWith('Read') ? `Reading ${msg.activity.slice(6)}` :
-                          msg.activity.startsWith('Glob') ? `Searching ${msg.activity.slice(6)}` :
-                          msg.activity.startsWith('Grep') ? `Searching for ${msg.activity.slice(6)}` :
-                          msg.activity.startsWith('Edit') ? `Editing ${msg.activity.slice(6)}` :
-                          msg.activity.startsWith('Write') ? `Writing ${msg.activity.slice(7)}` :
-                          msg.activity.startsWith('Bash') ? `Running command...` :
-                          msg.activity.startsWith('Skill') ? `Running ${msg.activity.slice(7)}` :
-                          msg.activity
-                        : 'Thinking...'}
-                    </span>
-                  </div>
-                )}
-
                 {/* Collapsed thinking content (expandable) */}
                 {!msg.isThinking && msg.thinking && (
                   <details className="mb-2 group">
@@ -509,8 +549,28 @@ export function ClaudeChat({
                     }}
                   />
                 )}
-                {streaming && messages[messages.length - 1]?.id === msg.id && !msg.isThinking && (
-                  <span className="inline-block w-1.5 h-3 bg-ink-ghost animate-pulse rounded-sm ml-0.5" />
+{/* cursor removed */}
+
+                {/* Activity indicator — bottom status bar showing what Claude is doing */}
+                {(msg.isThinking || msg.activity) && streaming && messages[messages.length - 1]?.id === msg.id && (
+                  <div className="flex items-center gap-2 py-2 mt-2 border-t border-edge-subtle">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--mauve)] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--mauve)]" />
+                    </span>
+                    <span className="text-[10px] text-[var(--mauve)] italic truncate">
+                      {msg.activity
+                        ? msg.activity.startsWith('Read') ? `Reading ${msg.activity.slice(6).split('/').pop()}` :
+                          msg.activity.startsWith('Glob') ? 'Searching files...' :
+                          msg.activity.startsWith('Grep') ? 'Searching code...' :
+                          msg.activity.startsWith('Edit') ? `Editing ${msg.activity.slice(6).split('/').pop()}` :
+                          msg.activity.startsWith('Write') ? `Writing ${msg.activity.slice(7).split('/').pop()}` :
+                          msg.activity.startsWith('Bash') ? 'Running command...' :
+                          msg.activity.startsWith('Skill') ? `Running ${msg.activity.slice(7)}` :
+                          msg.activity
+                        : 'Thinking...'}
+                    </span>
+                  </div>
                 )}
               </div>
             )}
@@ -518,44 +578,54 @@ export function ClaudeChat({
         ))}
       </div>
 
-      {/* Input area */}
+      {/* Input area — always visible, queues follow-ups while streaming */}
       <div className="shrink-0 border-t border-edge px-4 py-3">
-        {streaming ? (
-          <button
-            type="button"
-            onClick={stopStreaming}
-            className="w-full py-2 text-[11px] text-rose-text bg-rose-fill rounded-lg hover:bg-rose-fill/70 transition-colors"
-          >
-            Stop streaming
-          </button>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask Claude or type a /command..."
-              rows={1}
-              className="flex-1 min-h-[36px] max-h-[120px] resize-none px-3 py-2 text-[12px] text-ink bg-inset rounded-lg border border-edge focus:border-[var(--mauve)] focus:outline-none placeholder:text-ink-ghost leading-snug"
-              style={{
-                height: 'auto',
-                overflowY: input.split('\n').length > 4 ? 'auto' : 'hidden',
-              }}
-              onInput={(e) => {
-                const el = e.currentTarget;
-                el.style.height = 'auto';
-                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-              }}
-            />
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={streaming ? 'Type a follow-up (queued until done)...' : 'Ask Claude or type a /command...'}
+            rows={1}
+            className="flex-1 min-h-[36px] max-h-[120px] resize-none px-3 py-2 text-[12px] text-ink bg-inset rounded-lg border border-edge focus:border-[var(--mauve)] focus:outline-none placeholder:text-ink-ghost leading-snug"
+            style={{
+              height: 'auto',
+              overflowY: input.split('\n').length > 4 ? 'auto' : 'hidden',
+            }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = 'auto';
+              el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+            }}
+          />
+          <div className="flex flex-col gap-1 shrink-0">
             <button
               type="submit"
               disabled={!input.trim()}
-              className="px-3 py-2 text-[11px] font-medium bg-[var(--mauve)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 shrink-0"
+              className={`px-3 py-2 text-[11px] font-medium rounded-lg transition-opacity disabled:opacity-30 shrink-0 ${
+                streaming && input.trim()
+                  ? 'bg-tan-fill text-tan-text hover:opacity-90'
+                  : 'bg-[var(--mauve)] text-white hover:opacity-90'
+              }`}
             >
-              Send
+              {streaming && input.trim() ? 'Queue' : 'Send'}
             </button>
-          </form>
+            {streaming && (
+              <button
+                type="button"
+                onClick={stopStreaming}
+                className="px-3 py-1 text-[9px] text-ink-ghost hover:text-rose-text transition-colors"
+              >
+                Stop
+              </button>
+            )}
+          </div>
+        </form>
+        {queuedPromptRef.current && streaming && (
+          <div className="mt-1.5 text-[10px] text-tan-text italic">
+            Follow-up queued — will send when done
+          </div>
         )}
 
         {/* Action chips when chat has messages */}

@@ -6,6 +6,17 @@
 // pattern as ResearchShelf).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import type { SpecDoc, SpecStatus } from '@/lib/types';
 import { renderMarkdown, escapeHtml, inlineFormat } from '@/lib/renderMarkdown';
 
@@ -39,14 +50,18 @@ export function DesignBench({
   onHandoffViaChat,
   onPlanViaChat,
   onFocusSpec,
+  onUpdateSpecStatus,
+  onWriteComplete,
 }: {
   specs: SpecDoc[];
-  onRefetch?: () => void;
+  onRefetch?: () => void | Promise<void>;
   onDecomposeViaChat?: (spec: SpecDoc) => void;
   onSpecViaChat?: (spec: SpecDoc) => void;
   onHandoffViaChat?: (spec: SpecDoc) => void;
   onPlanViaChat?: (spec: SpecDoc) => void;
   onFocusSpec?: (spec: SpecDoc) => void;
+  onUpdateSpecStatus?: (specId: string, newStatus: SpecStatus) => void;
+  onWriteComplete?: () => void;
 }) {
   const [decomposing, setDecomposing] = useState<string | null>(null);
 
@@ -113,6 +128,65 @@ export function DesignBench({
     return map;
   }, [specs]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+  const [draggingSpecId, setDraggingSpecId] = useState<string | null>(null);
+  const draggingSpec = draggingSpecId ? specs.find((s) => s.id === draggingSpecId) ?? null : null;
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setDraggingSpecId(String(event.active.id));
+  }, []);
+
+  // Queue writes so rapid drags don't race — each write waits for the
+  // previous one to finish before reading from disk.
+  const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setDraggingSpecId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const specId = String(active.id);
+    const newStatus = String(over.id) as SpecStatus;
+    const spec = specs.find((s) => s.id === specId);
+    if (!spec || spec.status === newStatus) return;
+
+    // Optimistic: update parent state immediately
+    onUpdateSpecStatus?.(specId, newStatus);
+
+    // Queue the disk write so rapid drags serialize
+    writeQueueRef.current = writeQueueRef.current.then(async () => {
+      try {
+        const res = await fetch(`/api/vault/read?${new URLSearchParams({ file: spec.filePath, raw: '1' })}`);
+        const data = await res.json();
+        if (!data.content) return;
+        const c: string = data.content;
+        let updated: string;
+        const fmMatch = c.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch && /^status:\s*.+$/m.test(fmMatch[1])) {
+          // Frontmatter exists with status field — replace value
+          updated = c.replace(/^(---\n[\s\S]*?)(status:\s*).+$/m, `$1$2${newStatus}`);
+        } else if (fmMatch) {
+          // Frontmatter exists but no status — insert it
+          updated = c.replace(/^---\n/, `---\nstatus: ${newStatus}\n`);
+        } else {
+          // No frontmatter — prepend one
+          updated = `---\nstatus: ${newStatus}\n---\n\n${c}`;
+        }
+        await fetch('/api/vault/write', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: spec.filePath, content: updated, raw: true }),
+        });
+        // Refetch so the poll cache has the correct status from disk
+        await onRefetch?.();
+        onWriteComplete?.();
+      } catch {
+        onWriteComplete?.();
+      }
+    });
+  }, [specs, onUpdateSpecStatus, onRefetch, onWriteComplete]);
+
   return (
     <main ref={containerRef} className="flex-1 min-h-0 flex overflow-hidden">
       {/* Kanban */}
@@ -123,7 +197,7 @@ export function DesignBench({
         {/* Header */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-3 shrink-0">
           <div>
-            <h2 className="text-[14px] font-medium text-ink">Design Bench</h2>
+            <h2 className="text-[14px] font-medium text-ink">Build Queue</h2>
             <p className="text-[11px] text-ink-ghost">
               Agent specs. Decompose when ready to build.
             </p>
@@ -142,26 +216,14 @@ export function DesignBench({
               No specs yet. Promote a research doc from the Research shelf.
             </div>
           ) : (
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className={`grid gap-4 ${openSpec ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4'}`}>
               {COLUMNS.map(({ status, label, emptyHint }) => {
                 const items = grouped.get(status) || [];
                 return (
-                  <div key={status} className="flex flex-col">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${STATUS_DOT[status]}`} />
-                      <h3 className="text-[11px] font-medium text-ink-soft uppercase tracking-wider">
-                        {label}
-                      </h3>
-                      <span className="text-[10px] text-ink-ghost tabular-nums">{items.length}</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {items.length === 0 ? (
-                        <div className="text-[10px] text-ink-ghost italic py-4 px-2 border border-dashed border-edge-subtle rounded-lg text-center">
-                          {emptyHint}
-                        </div>
-                      ) : (
-                        items.map((spec) => (
-                          <SpecCard
+                  <KanbanColumn key={status} status={status} label={label} emptyHint={emptyHint} count={items.length}>
+                    {items.map((spec) => (
+                          <DraggableSpecCard
                             key={spec.id}
                             spec={spec}
                             isActive={openSpec?.id === spec.id}
@@ -169,13 +231,20 @@ export function DesignBench({
                             onOpen={() => setOpenSpec(spec)}
                             onDecompose={() => decomposeSpec(spec)}
                           />
-                        ))
-                      )}
-                    </div>
-                  </div>
+                    ))}
+                  </KanbanColumn>
                 );
               })}
             </div>
+            <DragOverlay dropAnimation={null}>
+              {draggingSpec && (
+                <div className="rounded-lg bg-card/95 border border-edge shadow-lg px-3 py-2 w-[260px] opacity-90" style={{ transform: 'rotate(-1deg)' }}>
+                  <div className="text-[12px] font-medium text-ink truncate">{draggingSpec.title}</div>
+                  <div className="text-[10px] text-ink-ghost mt-0.5">{draggingSpec.status}</div>
+                </div>
+              )}
+            </DragOverlay>
+            </DndContext>
           )}
         </div>
       </div>
@@ -202,6 +271,68 @@ export function DesignBench({
         </>
       )}
     </main>
+  );
+}
+
+// ─── Spec card ────────────────────────────────────────────────────
+
+// ─── Droppable kanban column ─────────────────────────────────────
+
+function KanbanColumn({
+  status,
+  label,
+  emptyHint,
+  count,
+  children,
+}: {
+  status: SpecStatus;
+  label: string;
+  emptyHint: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: status });
+  return (
+    <div ref={setNodeRef} className={`flex flex-col min-h-[80px] transition-colors rounded-lg ${isOver ? 'bg-sage-fill/30' : ''}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`w-2 h-2 rounded-full ${STATUS_DOT[status]}`} />
+        <h3 className="text-[11px] font-medium text-ink-soft uppercase tracking-wider">{label}</h3>
+        <span className="text-[10px] text-ink-ghost tabular-nums">{count}</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {count === 0 ? (
+          <div className="text-[10px] text-ink-ghost italic py-4 px-2 border border-dashed border-edge-subtle rounded-lg text-center">
+            {emptyHint}
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Draggable spec card wrapper ─────────────────────────────────
+
+function DraggableSpecCard(props: {
+  spec: SpecDoc;
+  isActive: boolean;
+  isDecomposing: boolean;
+  onOpen: () => void;
+  onDecompose: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: props.spec.id,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={{ opacity: isDragging ? 0.3 : 1 }}
+    >
+      <SpecCard {...props} />
+    </div>
   );
 }
 
@@ -384,7 +515,7 @@ function SpecReader({
       await fetch('/api/vault/write', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: filePath, content: editBuffer }),
+        body: JSON.stringify({ file: filePath, content: editBuffer, raw: true }),
       });
       setContent(editBuffer);
       setEditing(false);
@@ -433,56 +564,43 @@ function SpecReader({
             </button>
           )}
 
-          {/* Pipeline buttons — all visible, flow through stages */}
+          {/* Pipeline buttons */}
           {spec.status !== 'shipped' && (
             <>
-              {onPlan && (
-                <button
-                  type="button"
-                  onClick={onPlan}
-                  className="text-[10px] font-medium text-[var(--sand,#C5B39A)] bg-[var(--sand,#C5B39A)]/10 hover:bg-[var(--sand,#C5B39A)]/15 px-2.5 py-1 rounded-md border border-[var(--sand,#C5B39A)]/20 hover:border-[var(--sand,#C5B39A)]/40 transition-colors"
-                  title="Research and structure this goal into a plan"
-                >
-                  /plan
-                </button>
-              )}
+              {/* Upgrade status: drafting→ready→building→shipped */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const next: Record<string, string> = { drafting: 'ready', ready: 'building', building: 'shipped' };
+                  const nextStatus = next[spec.status];
+                  if (!nextStatus) return;
+                  try {
+                    const rawRes = await fetch(`/api/vault/read?${new URLSearchParams({ file: filePath, raw: '1' })}`);
+                    const rawData = await rawRes.json();
+                    if (!rawData.content) return;
+                    await fetch('/api/vault/write', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        file: filePath,
+                        content: rawData.content.replace(
+                          /^(status:\s*).+$/m,
+                          `$1${nextStatus}`,
+                        ),
+                        raw: true,
+                      }),
+                    });
+                  } catch { /* ignore */ }
+                }}
+                className="text-[10px] font-medium text-sage-text bg-sage-fill hover:bg-sage-fill/70 px-2.5 py-1 rounded-md border border-[var(--sage)]/20 hover:border-[var(--sage)]/40 transition-colors"
+                title={`Move to ${spec.status === 'drafting' ? 'ready' : spec.status === 'ready' ? 'building' : 'shipped'}`}
+              >
+                {spec.status === 'drafting' ? 'Ready →' : spec.status === 'ready' ? 'Building →' : 'Ship →'}
+              </button>
 
-              {onSpec && (
-                <button
-                  type="button"
-                  onClick={onSpec}
-                  className="text-[10px] font-medium text-[var(--ocean,#7A9AA0)] bg-[var(--ocean,#7A9AA0)]/10 hover:bg-[var(--ocean,#7A9AA0)]/15 px-2.5 py-1 rounded-md border border-[var(--ocean,#7A9AA0)]/20 hover:border-[var(--ocean,#7A9AA0)]/40 transition-colors"
-                  title="Search vault for context, ask goals, and flesh out this spec"
-                >
-                  /spec
-                </button>
-              )}
-
-              {onDecompose && (
-                <button
-                  type="button"
-                  onClick={onDecompose}
-                  className="text-[10px] font-medium text-[var(--mauve)] bg-mauve-fill hover:bg-mauve-fill/70 px-2.5 py-1 rounded-md border border-[var(--mauve)]/20 hover:border-[var(--mauve)]/40 transition-colors"
-                  title="Decompose this spec into tasks via Claude"
-                >
-                  /decompose
-                </button>
-              )}
-
-              {onHandoff && spec.linkedLoopCount > 0 && (
-                <button
-                  type="button"
-                  onClick={onHandoff}
-                  className="text-[10px] font-medium text-sage-text bg-sage-fill hover:bg-sage-fill/70 px-2.5 py-1 rounded-md border border-[var(--sage)]/20 hover:border-[var(--sage)]/40 transition-colors"
-                  title="Hand off to an isolated agent for implementation"
-                >
-                  /handoff
-                </button>
-              )}
             </>
           )}
 
-          <span className="text-[9px] text-ink-ghost ml-1">{editing ? 'esc cancel' : 'esc close'}</span>
           <button
             type="button"
             onClick={() => { if (editing) { setEditing(false); setDirty(false); } else onClose(); }}

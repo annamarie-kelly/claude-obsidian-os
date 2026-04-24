@@ -75,8 +75,8 @@ export function Header({
     <header className="sticky top-0 z-30 border-b border-edge bg-page/95 backdrop-blur shrink-0">
       {/* Primary row */}
       <div className="px-5 py-2.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <h1 className="flex items-center gap-2 shrink-0" aria-label="Tend">
+        <div className="flex items-center gap-5 min-w-0">
+          <h1 className="shrink-0" aria-label="Tend">
             <img
               src="/icon_v5_cream_on_mauve.png"
               alt=""
@@ -84,9 +84,6 @@ export function Header({
               height={26}
               className="rounded-md"
             />
-            <span className="text-[15px] font-medium tracking-tight text-ink">
-              Tend
-            </span>
           </h1>
 
           {/* Primary segmented nav — just the four "what are you
@@ -177,7 +174,7 @@ export function Header({
               </kbd>
             </button>
           )}
-          {onOpenBoundaryLog && <OverrideBadge onOpen={onOpenBoundaryLog} />}
+          {/* OverrideBadge removed — boundary log accessible via ⌘⇧B */}
           <ThemeToggle theme={theme} onChange={changeTheme} />
         </div>
       </div>
@@ -303,7 +300,7 @@ function ThemeToggle({ theme, onChange }: { theme: Theme; onChange: (t: Theme) =
       title={`Switch to ${next}`}
       aria-label={`Switch to ${next} theme`}
     >
-      {resolved === 'dark' ? '●' : '○'}
+      {resolved === 'dark' ? '\u263E' : '\u2609'}
     </button>
   );
 }

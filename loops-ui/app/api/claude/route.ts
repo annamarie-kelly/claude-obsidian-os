@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
                 send({ type: 'thinking', text: block.thinking });
               } else if (block.type === 'text' && typeof block.text === 'string') {
                 hasStreamedDeltas = true;
+                // stream-json sends accumulated text — only forward the new portion
                 const newText = block.text.slice(sentTextLength);
                 if (newText) {
                   send({ type: 'text', text: newText });
@@ -153,10 +154,10 @@ export async function POST(request: NextRequest) {
                   detail = `/${input.skill as string}`;
                 }
                 send({ type: 'activity', text: `${toolName}${detail ? ': ' + detail : ''}` });
+                // Tool use means a new turn is coming — reset text tracker
+                sentTextLength = 0;
               }
             }
-            // Reset sentTextLength for next turn's text
-            sentTextLength = 0;
             return;
           }
 

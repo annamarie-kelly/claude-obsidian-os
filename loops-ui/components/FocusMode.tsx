@@ -412,7 +412,7 @@ export function FocusMode({
 
   const [closeOpen, setCloseOpen] = useState(false);
   const [specStatus, setSpecStatus] = useState<string | null>(null);
-  const [specCollapsed, setSpecCollapsed] = useState(true);
+  // specCollapsed removed — spec always visible
 
   // Sibling loops: all loops (including done) sharing the same source file
   // Must be called unconditionally (before any early return) to satisfy Rules of Hooks
@@ -618,23 +618,18 @@ export function FocusMode({
   const { headline } = splitHeadline(loop.text);
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-surface">
-      {/* ─── Sticky header bar ─────────────────────────────────────── */}
+    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* ─── Header — matches DesignBench SpecReader ────────────────── */}
       <div className="px-4 py-3 flex items-center gap-2 border-b border-edge shrink-0">
-        {/* Back button */}
         <button
           type="button"
-          onClick={() => {
-            setDismissedActiveId(loop.id);
-            setPickedId(null);
-          }}
+          onClick={() => { setDismissedActiveId(loop.id); setPickedId(null); }}
           className="text-ink-ghost hover:text-ink text-[12px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
-          title="Back to picker"
+          title="Back to picker (Esc)"
         >
           &larr;
         </button>
 
-        {/* Title + filepath */}
         <div className="flex-1 min-w-0">
           <h3 className="text-[13px] font-medium text-ink truncate">{headline}</h3>
           <div className="text-[10px] text-ink-ghost mt-0.5 flex items-center gap-2">
@@ -652,211 +647,83 @@ export function FocusMode({
           </div>
         </div>
 
-        {/* Stage-appropriate action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
-
-          {/* Stage buttons */}
           {!isBuildingOrShipped && (
-            <>
-              {activeSiblingCount <= 1 ? (
-                <>
-                  {onPlanViaChat && (
-                    <button
-                      type="button"
-                      onClick={() => onPlanViaChat(loop.text)}
-                      className="text-[10px] font-medium text-[var(--sand,#C5B39A)] bg-[var(--sand,#C5B39A)]/10 hover:bg-[var(--sand,#C5B39A)]/15 px-2.5 py-1 rounded-md border border-[var(--sand,#C5B39A)]/20 hover:border-[var(--sand,#C5B39A)]/40 transition-colors"
-                    >
-                      /plan
-                    </button>
-                  )}
-                  {onSpecViaChat && (
-                    <button
-                      type="button"
-                      onClick={() => onSpecViaChat(sourceFile)}
-                      className="text-[10px] font-medium text-[var(--ocean,#7A9AA0)] bg-[var(--ocean,#7A9AA0)]/10 hover:bg-[var(--ocean,#7A9AA0)]/15 px-2.5 py-1 rounded-md border border-[var(--ocean,#7A9AA0)]/20 hover:border-[var(--ocean,#7A9AA0)]/40 transition-colors"
-                    >
-                      /spec
-                    </button>
-                  )}
-                  {onDecomposeViaChat && (
-                    <button
-                      type="button"
-                      onClick={() => onDecomposeViaChat(sourceFile)}
-                      className="text-[10px] font-medium text-[var(--mauve)] bg-mauve-fill hover:bg-mauve-fill/70 px-2.5 py-1 rounded-md border border-[var(--mauve)]/20 hover:border-[var(--mauve)]/40 transition-colors"
-                    >
-                      /decompose
-                    </button>
-                  )}
-                </>
-              ) : (
-                onHandoffViaChat && (
-                  <button
-                    type="button"
-                    onClick={() => onHandoffViaChat(sourceFile)}
-                    className="text-[10px] font-medium text-sage-text bg-sage-fill hover:bg-sage-fill/70 px-2.5 py-1 rounded-md border border-[var(--sage)]/20 hover:border-[var(--sage)]/40 transition-colors"
-                  >
-                    /handoff
-                  </button>
-                )
-              )}
-            </>
+            activeSiblingCount <= 1 ? (
+              <>
+                {onPlanViaChat && <button type="button" onClick={() => onPlanViaChat(loop.text)} className="text-[10px] font-medium text-[var(--sand,#C5B39A)] bg-[var(--sand,#C5B39A)]/10 hover:bg-[var(--sand,#C5B39A)]/15 px-2.5 py-1 rounded-md border border-[var(--sand,#C5B39A)]/20 hover:border-[var(--sand,#C5B39A)]/40 transition-colors">/plan</button>}
+                {onSpecViaChat && <button type="button" onClick={() => onSpecViaChat(sourceFile)} className="text-[10px] font-medium text-[var(--ocean,#7A9AA0)] bg-[var(--ocean,#7A9AA0)]/10 hover:bg-[var(--ocean,#7A9AA0)]/15 px-2.5 py-1 rounded-md border border-[var(--ocean,#7A9AA0)]/20 hover:border-[var(--ocean,#7A9AA0)]/40 transition-colors">/spec</button>}
+                {onDecomposeViaChat && <button type="button" onClick={() => onDecomposeViaChat(sourceFile)} className="text-[10px] font-medium text-[var(--mauve)] bg-mauve-fill hover:bg-mauve-fill/70 px-2.5 py-1 rounded-md border border-[var(--mauve)]/20 hover:border-[var(--mauve)]/40 transition-colors">/decompose</button>}
+              </>
+            ) : (
+              onHandoffViaChat && <button type="button" onClick={() => onHandoffViaChat(sourceFile)} className="text-[10px] font-medium text-sage-text bg-sage-fill hover:bg-sage-fill/70 px-2.5 py-1 rounded-md border border-[var(--sage)]/20 hover:border-[var(--sage)]/40 transition-colors">/handoff</button>
+            )
           )}
-
-          {/* Done */}
-          <button
-            type="button"
-            onClick={() => setCloseOpen(true)}
-            className="px-2.5 py-1 rounded-md bg-sage-fill text-sage-text border-[0.5px] border-sage text-[10px] font-medium hover:brightness-110 transition"
-          >
-            Done
-          </button>
-
-          {/* Obsidian link */}
-          {obsidianUrl && (
-            <a
-              href={obsidianUrl}
-              className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors"
-              title="Open in Obsidian"
-            >
-              &#x2197;
-            </a>
-          )}
-
-          <span className="text-[9px] text-ink-ghost ml-1">esc &rarr; picker</span>
+          <button type="button" onClick={() => setCloseOpen(true)} className="px-2.5 py-1 rounded-md bg-sage-fill text-sage-text border-[0.5px] border-sage text-[10px] font-medium hover:brightness-110 transition">Done</button>
+          {obsidianUrl && <a href={obsidianUrl} className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors" title="Open in Obsidian">&#x2197;</a>}
         </div>
       </div>
 
-      {/* ─── Progress bar (thin, full-width) ───────────────────────── */}
+      {/* ─── Progress bar ──────────────────────────────────────────── */}
       {barLabel && (
         <div className="shrink-0">
           <div className="h-[4px] bg-inset overflow-hidden">
-            <div
-              className="h-full transition-all duration-300"
-              style={{
-                width: `${Math.max(2, barPct)}%`,
-                background: barColor,
-              }}
-            />
+            <div className="h-full transition-all duration-300" style={{ width: `${Math.max(2, barPct)}%`, background: barColor }} />
           </div>
-          <div className="px-5 mt-1 text-[10px] text-ink-ghost tabular-nums font-mono">
-            {barLabel}
-          </div>
+          <div className="px-5 mt-1 text-[10px] text-ink-ghost tabular-nums font-mono">{barLabel}</div>
         </div>
       )}
 
-      {/* ─── Single-column scrollable content ─────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-subtle">
-        <div className="max-w-3xl mx-auto px-6 py-4 pb-20 flex flex-col gap-6">
+      {/* ─── Content: spec + tasks + notes in one scroll ───────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 scrollbar-subtle">
+        {/* Spec content — the main body, like DesignBench reader */}
+        {sourceFile && (
+          <FocusSpecContent
+            filePath={sourceFile}
+            onStatusParsed={setSpecStatus}
+          />
+        )}
 
-          {/* ─── Tasks section (hero content) ──────────────────────── */}
-          <section>
+        {/* Tasks — below the spec, inline */}
+        {allSiblings.length > 0 && (
+          <section className="mt-8 mb-6">
             <div className="flex items-center gap-3 mb-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost">
-                Tasks
-              </div>
-              <span className="text-[10px] text-ink-ghost tabular-nums font-mono">
-                {doneSiblingCount}/{allSiblings.length} done
-              </span>
+              <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost">Tasks</div>
+              <span className="text-[10px] text-ink-ghost tabular-nums font-mono">{doneSiblingCount}/{allSiblings.length} done</span>
             </div>
-
             <div className="h-[3px] rounded-full bg-inset overflow-hidden mb-3">
-              <div
-                className="h-full bg-sage-fill transition-all duration-300"
-                style={{ width: `${allSiblings.length > 0 ? (doneSiblingCount / allSiblings.length) * 100 : 0}%` }}
-              />
+              <div className="h-full bg-sage-fill transition-all duration-300" style={{ width: `${allSiblings.length > 0 ? (doneSiblingCount / allSiblings.length) * 100 : 0}%` }} />
             </div>
-
-            {allSiblings.length > 0 && doneSiblingCount === allSiblings.length && (
-              <div className="text-[12px] text-sage-text bg-sage-fill/20 rounded-md px-3 py-2 mb-3">
-                All tasks done — nice work.
-              </div>
+            {doneSiblingCount === allSiblings.length && (
+              <div className="text-[12px] text-sage-text bg-sage-fill/20 rounded-md px-3 py-2 mb-3">All tasks done.</div>
             )}
-
             <ul className="flex flex-col gap-1">
               {[...allSiblings]
-                .sort((a, b) => {
-                  if (a.done && !b.done) return 1;
-                  if (!a.done && b.done) return -1;
-                  return 0;
-                })
+                .sort((a, b) => { if (a.done && !b.done) return 1; if (!a.done && b.done) return -1; return 0; })
                 .map((sib) => {
                   const isPicked = sib.id === loop.id;
                   const sibEst = sib.timeEstimateMinutes;
                   return (
-                    <li
-                      key={sib.id}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-colors cursor-pointer ${
-                        isPicked
-                          ? 'border border-[var(--sage)] bg-sage-fill/20'
-                          : 'border border-transparent hover:bg-inset/60'
-                      } ${sib.done ? 'opacity-50' : ''}`}
-                      onClick={() => {
-                        if (!sib.done && sib.id !== loop.id) {
-                          setPickedId(sib.id);
-                        }
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!sib.done) void onCloseLoop(sib.id);
-                        }}
-                        className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${
-                          sib.done
-                            ? 'bg-sage-fill border-[var(--sage)] text-sage-text'
-                            : 'border-edge hover:border-[var(--sage)]'
-                        }`}
-                        disabled={sib.done}
-                      >
+                    <li key={sib.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-colors cursor-pointer ${isPicked ? 'border border-[var(--sage)] bg-sage-fill/20' : 'border border-transparent hover:bg-inset/60'} ${sib.done ? 'opacity-50' : ''}`}
+                      onClick={() => { if (!sib.done && sib.id !== loop.id) setPickedId(sib.id); }}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); if (!sib.done) void onCloseLoop(sib.id); }}
+                        className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${sib.done ? 'bg-sage-fill border-[var(--sage)] text-sage-text' : 'border-edge hover:border-[var(--sage)]'}`} disabled={sib.done}>
                         {sib.done && <span className="text-[8px]">&#10003;</span>}
                       </button>
-
-                      <span className={`flex-1 min-w-0 leading-snug ${
-                        sib.done ? 'line-through text-ink-ghost' : 'text-ink'
-                      }`}>
-                        {stripInlineMarkdown(sib.text)}
-                      </span>
-
-                      {!sib.done && (
-                        <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${
-                          sib.blocked ? 'bg-[var(--rose)]' : 'bg-sage-fill'
-                        }`} />
-                      )}
-
-                      {sibEst != null && !sib.done && (
-                        <span className="text-[9px] text-ink-ghost font-mono tabular-nums shrink-0">
-                          {formatMinutes(sibEst)}
-                        </span>
-                      )}
-
-                      {isPicked && (
-                        <span className="text-[8px] text-sage-text font-medium shrink-0">
-                          ●
-                        </span>
-                      )}
+                      <span className={`flex-1 min-w-0 leading-snug ${sib.done ? 'line-through text-ink-ghost' : 'text-ink'}`}>{stripInlineMarkdown(sib.text)}</span>
+                      {!sib.done && <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${sib.blocked ? 'bg-[var(--rose)]' : 'bg-sage-fill'}`} />}
+                      {sibEst != null && !sib.done && <span className="text-[9px] text-ink-ghost font-mono tabular-nums shrink-0">{formatMinutes(sibEst)}</span>}
+                      {isPicked && <span className="text-[8px] text-sage-text font-medium shrink-0">●</span>}
                     </li>
                   );
                 })}
             </ul>
           </section>
+        )}
 
-          {/* ─── Notes section (always visible, full-width) ────────── */}
-          <FocusNotes
-            loop={loop}
-            notesRef={notesRef}
-            onUpdateLoop={onUpdateLoop}
-          />
-
-          {/* ─── Spec section (collapsible, collapsed by default) ──── */}
-          {sourceFile && (
-            <FocusSpecContent
-              filePath={sourceFile}
-              onStatusParsed={setSpecStatus}
-              collapsed={specCollapsed}
-              onToggleCollapse={() => setSpecCollapsed((c) => !c)}
-            />
-          )}
+        {/* Notes — below tasks */}
+        <div className="mt-6 pb-20">
+          <FocusNotes loop={loop} notesRef={notesRef} onUpdateLoop={onUpdateLoop} />
         </div>
       </div>
 
@@ -918,22 +785,34 @@ function FocusNotes({
 
   return (
     <section>
-      <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost mb-3">
-        Notes
+      <div className="flex items-center gap-2 mb-3">
+        <div className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost">
+          Notes
+        </div>
+        {draft.trim() && (
+          <span className="text-[9px] text-ink-ghost">Cmd+Enter to save</span>
+        )}
       </div>
       <textarea
         ref={notesRef}
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          // Auto-grow
+          const el = e.target;
+          el.style.height = 'auto';
+          el.style.height = `${Math.max(120, el.scrollHeight)}px`;
+        }}
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
             e.preventDefault();
             void submit();
           }
         }}
-        placeholder="Jot as you work... Cmd+Enter to save"
-        rows={4}
-        className="w-full resize-none px-3 py-2 rounded-md bg-inset border-[0.5px] border-edge text-[13px] text-ink placeholder:text-ink-ghost focus:outline-none focus:border-[var(--mauve)] transition-colors"
+        placeholder="Type your thoughts, answers, notes..."
+        rows={6}
+        className="w-full resize-none px-4 py-3 rounded-lg bg-inset border-[0.5px] border-edge text-[14px] text-ink leading-relaxed placeholder:text-ink-ghost/50 focus:outline-none focus:border-[var(--mauve)]/40 transition-colors"
+        style={{ minHeight: '120px' }}
       />
       {userNotes.length > 0 && (
         <ul className="mt-4 flex flex-col gap-1">
@@ -956,13 +835,9 @@ function FocusNotes({
 function FocusSpecContent({
   filePath: initialFilePath,
   onStatusParsed,
-  collapsed,
-  onToggleCollapse,
 }: {
   filePath: string;
   onStatusParsed?: (status: string | null) => void;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
 }) {
   const [filePath, setFilePath] = useState(initialFilePath);
   const [content, setContent] = useState<string | null>(null);
@@ -1097,43 +972,18 @@ function FocusSpecContent({
 
   return (
     <section ref={scrollRef}>
-      {/* Collapsible header */}
-      <button
-        type="button"
-        onClick={onToggleCollapse}
-        className="flex items-center gap-2 w-full text-left group"
-      >
-        <span className="text-[10px] text-ink-ghost">
-          {collapsed ? '\u25B8' : '\u25BE'}
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.12em] text-ink-ghost group-hover:text-ink-soft transition-colors">
-          {collapsed ? 'Show spec' : 'Hide spec'}
-        </span>
-        <span className="text-[10px] text-ink-ghost truncate">
-          {specFileName}
-        </span>
-      </button>
+      {loading ? (
+        <div className="text-[11px] text-ink-ghost animate-pulse pt-2">Loading...</div>
+      ) : !content ? null : (
+        <>
+          {history.length > 0 && (
+            <button type="button" onClick={goBack}
+              className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors mb-2">
+              &larr; Back to spec
+            </button>
+          )}
 
-      {!collapsed && (
-        <div className="mt-3">
-          {loading ? (
-            <div className="text-[11px] text-ink-ghost animate-pulse pt-2">
-              Loading...
-            </div>
-          ) : !content ? null : (
-            <>
-              {/* Vault link history back */}
-              {history.length > 0 && (
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors mb-2"
-                >
-                  &larr; Back to spec
-                </button>
-              )}
-
-              {isHtml ? (
+          {isHtml ? (
                 <iframe
                   srcDoc={content}
                   className="w-full border border-edge rounded-lg min-h-[60vh]"
@@ -1183,8 +1033,6 @@ function FocusSpecContent({
               )}
             </>
           )}
-        </div>
-      )}
 
       {/* ─── Dev info section ──────────────────────────────────────── */}
       {devInfo && (devInfo.handoffBranch || devInfo.handoffDate) && (

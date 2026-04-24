@@ -31,8 +31,9 @@ export async function GET(request: Request) {
   try {
     const content = await fs.readFile(resolved, 'utf-8');
     const isHtml = file.endsWith('.html');
-    // Strip YAML frontmatter for markdown; serve HTML raw
-    const body = isHtml ? content : content.replace(/^---[\s\S]*?---\n*/, '');
+    const raw = url.searchParams.get('raw') === '1';
+    // Strip YAML frontmatter for markdown display; serve HTML and raw requests as-is
+    const body = (isHtml || raw) ? content : content.replace(/^---[\s\S]*?---\n*/, '');
     return NextResponse.json({ file, content: body, available: true, isHtml });
   } catch {
     return NextResponse.json({ file, content: '', available: false });

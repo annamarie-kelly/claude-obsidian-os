@@ -11,8 +11,8 @@ type PlanTab = 'research' | 'design' | 'ship' | 'plan';
 
 const TABS: { id: PlanTab; label: string; dot: string }[] = [
   { id: 'research', label: 'Research', dot: 'bg-tan-fill' },
-  { id: 'design', label: 'Design', dot: 'bg-[var(--ocean,#7A9AA0)]' },
-  { id: 'ship', label: 'Ship', dot: 'bg-ink-ghost' },
+  { id: 'design', label: 'Build', dot: 'bg-[var(--ocean,#7A9AA0)]' },
+  { id: 'ship', label: 'Design', dot: 'bg-sage-fill' },
   { id: 'plan', label: 'Schedule', dot: 'bg-[var(--mauve,#9A7A8B)]' },
 ];
 

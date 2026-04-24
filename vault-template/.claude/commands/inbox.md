@@ -1,68 +1,26 @@
-# Pull Inbox from MCP Sources
+# Quick Capture
 
-Pull context from connected external tools into the inbox. Run this ~once a day.
+Fast capture to inbox. No formatting required — just get it down.
 
-**Usage**: `/inbox [source]` where source is one of your configured MCP sources, or `all`
+$ARGUMENTS
 
-The argument is: $ARGUMENTS
+## What this does
 
-## How to Customize
+Creates a spark note in `00-Inbox/` from whatever you give me. Use this when you want to capture something fast without thinking about where it goes.
 
-Replace the MCP tool calls below with your own. Common sources:
-- **Meeting transcripts**: Granola, Fireflies, Otter.ai
-- **CRM / Pipeline**: Salesforce, HubSpot, or your internal tool
-- **Task board**: Linear, Jira, Asana (often accessible via Notion connected sources)
-- **Calendar**: Google Calendar, Outlook
+**Usage examples:**
+- `/inbox idea about glazing technique for the new series`
+- `/inbox book rec from a friend: "The Creative Act" by Rick Rubin`
+- `/inbox need to schedule dentist appointment`
+- `/inbox interesting pattern: the best studio sessions start with cleanup`
 
-## Example: Pull from all sources
+## How it works
 
-For each configured source:
-1. Call the relevant MCP tools to gather recent data
-2. Extract action items, decisions, changes, and attention flags
-3. Create an inbox note with the format below
+1. Take the input (argument text, or ask if none provided)
+2. Create a spark note in `00-Inbox/` with minimal frontmatter
+3. Use a descriptive filename based on the content
+4. Don't over-format — capture the raw thought
+5. If it's clearly an action item, make it a `- [ ]` task so `/loops` picks it up
+6. Confirm what was captured
 
-## Output Format
-
-Create a note file in `00-Inbox/` with this structure:
-
-```markdown
----
-created: YYYY-MM-DD
-type: inbox
-source: [source name]
-tags: []
----
-
-# Inbox Pull — [Source] (YYYY-MM-DD)
-
-## Meetings & Decisions
-[Meeting titles, key decisions, who was there]
-
-## Action Items
-- [ ] [things I owe]
-- [ ] @waiting [person] [things blocked on others]
-
-## Needs Attention
-[Attention flags, stale items, overdue reminders]
-
-## Recent Changes
-[Portfolio changes, ticket updates, notable shifts]
-
-## Raw Notes
-[Any additional context that didn't fit above]
-```
-
-### Rules:
-- Action items always use `- [ ]` so they surface in `/loops`
-- Use `- [ ] @waiting [person] ...` for items blocked on others
-- Include [[wikilinks]] to people in `05-Relating/` when names come up
-- If a source is unavailable, note it: `> [Source] was unavailable during this pull.`
-- Keep it concise — this is a capture point, not a finished document
-- After generating, write the note to `00-Inbox/` and confirm with the user
-
-## After Writing
-
-Tell me:
-1. What was pulled and from which sources
-2. How many action items were extracted
-3. Anything that looks urgent or time-sensitive
+This is the fast path. `/triage` will sort it later.

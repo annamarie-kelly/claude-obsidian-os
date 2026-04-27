@@ -110,12 +110,13 @@ export function CaptureBar({ open, onClose, onCapture }: CaptureBarProps) {
             className="flex-1 text-[13px] px-2 py-1.5 bg-transparent text-ink placeholder:text-ink-ghost focus:outline-none border-b border-edge focus:border-[var(--mauve)]"
           />
           <div className="text-[10px] text-ink-ghost shrink-0 tabular-nums">
-            {count > 0 ? `${count} captured` : 'inbox'}
+            {count > 0 ? `${count} → Triage` : '→ Triage'}
           </div>
         </div>
         {lastCaptured && (
-          <div className="max-w-[760px] mx-auto px-5 pb-2 text-[10px] text-ink-faint italic truncate">
-            ↳ &ldquo;{lastCaptured}&rdquo;
+          <div className="max-w-[760px] mx-auto px-5 pb-2 text-[10px] text-ink-faint italic truncate flex items-center gap-2">
+            <span className="text-ink-ghost not-italic">in Triage:</span>
+            <span className="truncate">&ldquo;{lastCaptured}&rdquo;</span>
           </div>
         )}
       </div>

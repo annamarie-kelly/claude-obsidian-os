@@ -92,6 +92,9 @@ export async function loadDemoSeed(
       tier: 'now',
       text: seed.text,
       pLevel: seed.pLevel,
+      // Skip triage for demo data — explorers want to see the
+      // surfaces populated, not run the triage flow on fake loops.
+      status: 'active',
       difficulty: null,
       timeEstimateMinutes: seed.timeEstimateMinutes,
       subGroup: null,

@@ -525,7 +525,7 @@ export function TriageView({
             onCyclePriority={cyclePendingPriority}
           />
         ) : (
-          <EmptyState counts={counts} />
+          <EmptyState counts={counts} totalLoops={loops.length} />
         )
       ) : (
         <ListSurface
@@ -698,7 +698,30 @@ function OvercommitNudge({ counts }: { counts: SessionCounts }) {
   );
 }
 
-function EmptyState({ counts }: { counts: SessionCounts }) {
+function EmptyState({
+  counts,
+  totalLoops,
+}: {
+  counts: SessionCounts;
+  totalLoops: number;
+}) {
+  // First-run / cold-start: no loops anywhere AND nothing processed
+  // this session. The celebration copy is wrong here — there's nothing
+  // to celebrate yet — so show an onboarding hint instead.
+  const isFresh = counts.processed === 0 && totalLoops === 0;
+  if (isFresh) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md px-6">
+          <h2 className="text-[18px] font-medium text-ink mb-2">Triage is empty.</h2>
+          <p className="text-[12px] text-ink-ghost leading-relaxed">
+            Press <code className="font-mono">c</code> to capture a thought, or{' '}
+            <code className="font-mono">⌘\</code> to browse your vault.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-md px-6">

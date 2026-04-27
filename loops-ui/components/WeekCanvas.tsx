@@ -253,6 +253,16 @@ export function WeekCanvas({
     return map;
   }, [loops]);
 
+  // True when no loop has any block falling inside the visible week —
+  // shows the onboarding hint in place of the day-budget readout.
+  const weekIsEmpty = useMemo(() => {
+    const visible = new Set(days);
+    for (const list of placementsByDate.values()) {
+      for (const p of list) if (visible.has(p.tb.date)) return false;
+    }
+    return true;
+  }, [days, placementsByDate]);
+
   // Today's committed summary. Scored against a 9a-5p working-hours budget,
   // not the 8a-7p grid span — prevents the bar from normalizing overwork.
   // If committed > 8h, the bar caps at 100% and the free number goes to 0;
@@ -282,9 +292,15 @@ export function WeekCanvas({
       >
         <div className="flex items-baseline gap-3">
           <h2 className="text-[13px] font-medium tracking-tight text-ink">This week</h2>
-          <span className="text-[11px] text-ink-faint tabular-nums">
-            Today: {formatMinutes(committedMinutes)} committed / {formatMinutes(freeMinutes)} free
-          </span>
+          {weekIsEmpty ? (
+            <span className="text-[11px] text-ink-faint italic">
+              Drag a loop here to block time. Tap a slot to add a one-off task.
+            </span>
+          ) : (
+            <span className="text-[11px] text-ink-faint tabular-nums">
+              Today: {formatMinutes(committedMinutes)} committed / {formatMinutes(freeMinutes)} free
+            </span>
+          )}
         </div>
         <div className="text-[10px] text-ink-ghost tabular-nums">
           {calendar?.available ? 'calendar linked' : 'no calendar'}

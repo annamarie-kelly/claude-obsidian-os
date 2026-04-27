@@ -60,6 +60,8 @@ import { ClaudeChat } from '@/components/ClaudeChat';
 import { VaultBrowser } from '@/components/VaultBrowser';
 import { NoteReader } from '@/components/NoteReader';
 import { CaptureBar } from '@/components/CaptureBar';
+import { FirstLaunchRitual } from '@/components/FirstLaunchRitual';
+import { loadDemoSeed } from '@/lib/demo-seed';
 import { appendBoundaryLog } from '@/lib/tend';
 import {
   checkCapacityGate,
@@ -100,6 +102,7 @@ export default function Page() {
   // Bumping this number after a save/create makes VaultBrowser refetch.
   const [vaultRefreshKey, setVaultRefreshKey] = useState(0);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [ritualDismissed, setRitualDismissed] = useState(false);
   const [capacityGate, setCapacityGate] = useState<{
     open: boolean;
     kind: 'P1:stakeholder' | 'P1:self' | 'P1-cap' | 'P2-cap';
@@ -249,6 +252,16 @@ export default function Page() {
       .then((r) => r.json())
       .then((c) => setCalendar(c))
       .catch(() => setCalendar({ date: null, events: [], available: false }));
+  }, []);
+
+  // Hydrate the first-launch onboarded flag — set on any of the
+  // ritual's three exits (capture, demo, skip).
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('loops-ui:onboarded')) {
+        setRitualDismissed(true);
+      }
+    } catch {}
   }, []);
 
   // Hydrate mode from localStorage
@@ -1702,6 +1715,19 @@ export default function Page() {
           onClose={() => setCaptureOpen(false)}
           onCapture={createLoop}
         />
+
+        {/* First-launch ritual — only when fully empty and unflagged. */}
+        {!ritualDismissed && data?.loops.length === 0 && (
+          <FirstLaunchRitual
+            onCapture={createLoop}
+            onLoadDemo={() => loadDemoSeed(createLoop)}
+            onComplete={() => {
+              setRitualDismissed(true);
+              setMode('triage');
+            }}
+            onSkip={() => setRitualDismissed(true)}
+          />
+        )}
       </div>
     </DndContext>
   );

@@ -436,6 +436,15 @@ export function sortLoops(loops: Loop[], by: SortBy): Loop[] {
   return sorted;
 }
 
+// Build an obsidian:// deep link for a vault file path. Returns null
+// when NEXT_PUBLIC_OBSIDIAN_VAULT is unset, so call sites can hide the
+// link entirely instead of rendering a dead URL.
+export function obsidianUrl(filePath: string): string | null {
+  const vault = process.env.NEXT_PUBLIC_OBSIDIAN_VAULT;
+  if (!vault) return null;
+  return `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(filePath.replace(/\.md$/, ''))}`;
+}
+
 export async function makeHashId(file: string, text: string): Promise<string> {
   const bytes = new TextEncoder().encode(`${file}|${text}`);
   const buf = await crypto.subtle.digest('SHA-256', bytes);

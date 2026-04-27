@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ResearchCategory, ResearchDoc } from '@/lib/types';
 import { renderMarkdown, escapeHtml, inlineFormat } from '@/lib/renderMarkdown';
+import { obsidianUrl } from '@/lib/ui';
 import { MarkdownEditor, invalidateVaultFileCache } from '@/components/MarkdownEditor';
 
 const CATEGORY_META: Record<
@@ -332,8 +333,11 @@ export function ResearchShelf({
         {/* Cards */}
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 scrollbar-subtle">
           {grouped.length === 0 ? (
-            <div className="text-[12px] text-ink-ghost italic pt-10 text-center">
-              No research docs found.
+            <div className="pt-10 text-center">
+              <div className="text-[12px] text-ink-ghost">No research docs found.</div>
+              <div className="text-[11px] text-ink-ghost italic mt-1">
+                Click + Add to paste markdown from Claude or another tool.
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
@@ -683,7 +687,10 @@ function ResearchReader({
     }
   }, [filePath, editBuffer]);
 
-  const obsidianUrl = `obsidian://open?vault=${encodeURIComponent('obsidian-vault')}&file=${encodeURIComponent(filePath.replace(/\.md$/, ''))}`;
+  // Built but currently unused — kept as the canonical hook for any
+  // future "Open in Obsidian" affordance on the reader. Returns null
+  // when NEXT_PUBLIC_OBSIDIAN_VAULT is unset, so consumers must guard.
+  void obsidianUrl(filePath);
 
   // Handle wikilink clicks
   const handleContentClick = useCallback((e: React.MouseEvent) => {

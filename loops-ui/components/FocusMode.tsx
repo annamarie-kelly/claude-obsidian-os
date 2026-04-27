@@ -21,6 +21,7 @@ import type {
 import { formatMinutes, todayISO } from '@/lib/types';
 import {
   effectiveWorkMode,
+  obsidianUrl,
   pLevelRank,
   pPillClass,
   stripInlineMarkdown,
@@ -464,10 +465,10 @@ export function FocusMode({
               Focus
             </div>
             <div className="text-[20px] text-ink leading-snug mb-3">
-              Nothing to pick from.
+              Nothing in Focus yet.
             </div>
             <div className="text-[13px] text-ink-faint leading-relaxed">
-              Drop a loop on the Plan canvas or promote something in Triage.
+              Press <code className="font-mono">c</code> to capture, or pick from Triage.
             </div>
           </div>
         </main>
@@ -610,10 +611,8 @@ export function FocusMode({
     barLabel = `${formatMinutes(est)} estimate`;
   }
 
-  // Obsidian deep link
-  const obsidianUrl = sourceFile
-    ? `obsidian://open?vault=${encodeURIComponent('obsidian-vault')}&file=${encodeURIComponent(sourceFile.replace(/\.md$/, ''))}`
-    : '';
+  // Obsidian deep link — null when NEXT_PUBLIC_OBSIDIAN_VAULT is unset.
+  const obsidianHref = sourceFile ? obsidianUrl(sourceFile) : null;
 
   const { headline } = splitHeadline(loop.text);
 
@@ -660,7 +659,7 @@ export function FocusMode({
             )
           )}
           <button type="button" onClick={() => setCloseOpen(true)} className="px-2.5 py-1 rounded-md bg-sage-fill text-sage-text border-[0.5px] border-sage text-[10px] font-medium hover:brightness-110 transition">Done</button>
-          {obsidianUrl && <a href={obsidianUrl} className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors" title="Open in Obsidian">&#x2197;</a>}
+          {obsidianHref && <a href={obsidianHref} className="text-ink-ghost hover:text-ink text-[11px] px-1.5 py-0.5 rounded hover:bg-inset transition-colors" title="Open in Obsidian">&#x2197;</a>}
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {
   WORK_MODES,
   WORK_MODE_META,
   effectiveWorkMode,
+  obsidianUrl,
   pBarColor,
   pPillClass,
 } from '@/lib/ui';
@@ -142,16 +143,9 @@ export function DetailDrawer({
     });
   };
 
-  // The Obsidian app URL uses the vault folder name as an identifier.
-  // Override via NEXT_PUBLIC_OBSIDIAN_VAULT (falls back to the vault
-  // root's basename, which matches for most setups).
-  const vaultName =
-    (typeof process !== 'undefined' &&
-      process.env?.NEXT_PUBLIC_OBSIDIAN_VAULT) ||
-    'vault';
-  const obsidianUrl = `obsidian://open?vault=${encodeURIComponent(
-    vaultName
-  )}&file=${encodeURIComponent(loop.source.file)}`;
+  // Obsidian deep link — null when NEXT_PUBLIC_OBSIDIAN_VAULT is unset,
+  // which hides the breadcrumb's open-in-Obsidian affordance.
+  const obsidianHref = obsidianUrl(loop.source.file);
 
   const onFieldChange = async (patch: Partial<Loop>) => {
     // Auto-append a system note when the user changes tier. Gives the
@@ -201,18 +195,27 @@ export function DetailDrawer({
         <div className="px-5 pt-3 pb-3 border-b border-edge shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <button
-                type="button"
-                onClick={() => {
-                  // Use window.location for custom protocols —
-                  // more reliable than <a href> on some browsers.
-                  window.location.href = obsidianUrl;
-                }}
-                title={`Open ${loop.source.file}:${loop.source.line} in Obsidian`}
-                className="block text-[10px] text-ink-ghost hover:text-ink-soft mb-1.5 font-mono truncate text-left w-full hover:underline"
-              >
-                {breadcrumb.join(' › ')} · L{loop.source.line} ↗
-              </button>
+              {obsidianHref ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Use window.location for custom protocols —
+                    // more reliable than <a href> on some browsers.
+                    window.location.href = obsidianHref;
+                  }}
+                  title={`Open ${loop.source.file}:${loop.source.line} in Obsidian`}
+                  className="block text-[10px] text-ink-ghost hover:text-ink-soft mb-1.5 font-mono truncate text-left w-full hover:underline"
+                >
+                  {breadcrumb.join(' › ')} · L{loop.source.line} ↗
+                </button>
+              ) : (
+                <div
+                  title={`${loop.source.file}:${loop.source.line}`}
+                  className="text-[10px] text-ink-ghost mb-1.5 font-mono truncate"
+                >
+                  {breadcrumb.join(' › ')} · L{loop.source.line}
+                </div>
+              )}
               <EditableTitle
                 value={loop.text}
                 disabled={isDone}
@@ -713,12 +716,14 @@ export function DetailDrawer({
                 Needs spec
               </button>
             )}
-            <a
-              href={obsidianUrl}
-              className={`${isDone ? 'flex-1' : ''} px-3 py-1.5 rounded-md bg-transparent border-[0.5px] border-edge text-ink-soft hover:border-[var(--mauve)] hover:bg-mauve-fill hover:text-mauve-text text-[12px] text-center transition-colors`}
-            >
-              Obsidian ↗
-            </a>
+            {obsidianHref && (
+              <a
+                href={obsidianHref}
+                className={`${isDone ? 'flex-1' : ''} px-3 py-1.5 rounded-md bg-transparent border-[0.5px] border-edge text-ink-soft hover:border-[var(--mauve)] hover:bg-mauve-fill hover:text-mauve-text text-[12px] text-center transition-colors`}
+              >
+                Obsidian ↗
+              </a>
+            )}
           </div>
         </div>
       </aside>

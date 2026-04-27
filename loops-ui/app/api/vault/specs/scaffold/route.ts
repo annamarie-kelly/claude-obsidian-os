@@ -279,6 +279,8 @@ ${openQuestionsBullets}
 `;
 
   try {
+    // Ensure the specs folder exists — fresh vaults won't have it.
+    await fs.mkdir(path.dirname(specAbs), { recursive: true });
     await fs.writeFile(specAbs, specContent, 'utf-8');
   } catch (err) {
     return NextResponse.json(

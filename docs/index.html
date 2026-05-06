@@ -571,6 +571,13 @@
     background: var(--surface-soft);
     box-shadow: var(--shadow-card);
   }
+  /* The Chrome extension popup ships at 380px wide; rendering at full
+     content width over-scales it. Cap to a more honest size and center. */
+  .screenshot img[src*="chrome-extension"] {
+    width: auto;
+    max-width: 460px;
+    margin: 0 auto;
+  }
   .screenshot-frame {
     aspect-ratio: 16 / 10;
     background:

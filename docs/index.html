@@ -1597,33 +1597,39 @@ tags: []
     </ul>
   </section>
 
-  <!-- ─── 13 First-launch flow ─────────────────────────────── -->
-  <section class="section" id="first-launch">
+  <!-- ─── 13 Design Board ──────────────────────────────────── -->
+  <section class="section" id="design-board">
     <div class="section-marker rose">
       <span class="num">13</span>
       <span class="pip"></span>
-      <span>First launch</span>
+      <span>Design Board</span>
     </div>
-    <h2>From paste-the-installer to ready-to-use in under three minutes.</h2>
+    <h2>A whiteboard for visual thinking, with a button that hands the board to Claude.</h2>
     <p class="lede">
-      Five gates, each with a graceful fallback. By the end you have a server running, a vault seeded with examples, and a tour walking you through the four modes.
+      Drop screenshots onto a canvas, drag them around, annotate with arrows and colored highlights. Then send the whole board to Claude and get analysis back. Design reviews, system sketches, bug repros, problem maps, all in one surface.
     </p>
 
-    <ol>
-      <li><strong>Installer</strong>: <code>curl -fsSL ... | bash</code> detects your platform, checks Node 20+ and git, clones the repo to <code>~/loops-os</code>, hands off.</li>
-      <li><strong>Preflight</strong>: <code>npm run start</code> runs system checks (Node version, port 3456, Claude Code CLI, Obsidian).</li>
-      <li><strong>Setup prompt</strong>: one question, optional. "Primary stakeholder name? (Enter to skip)". Writes to <code>loops.config.json</code>.</li>
-      <li><strong>Dev server + browser</strong>: starts Next.js, opens <code>http://localhost:3456</code> in your default browser.</li>
-      <li><strong>Ritual + tour</strong>: a fullscreen ritual asks "what are you trying to ship in the next two weeks?", then a quiet bottom-right card walks you through Triage → Backlog → Plan → Focus.</li>
-    </ol>
-
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="first-launch-tour">
-        <span class="screenshot-label">[Screenshot: first-launch tour card bottom-right]</span>
+      <div class="screenshot-frame" data-screenshot="design-board">
+        <span class="screenshot-label">[Screenshot: Design Board with annotated screenshots]</span>
       </div>
-      <figcaption>The tour: a single floating card per step, with the actual mode visible behind it. No backdrop, no overlay, no walls.</figcaption>
-      <!-- Replace with: <img src="screenshots/first-launch-tour.png" alt="First-launch tour card"> -->
+      <figcaption>Paste, drag, annotate. Save writes a PNG plus a companion markdown file into the vault so the artifact lives next to your notes.</figcaption>
+      <!-- Replace with: <img src="screenshots/design-board.png" alt="Design Board canvas"> -->
     </figure>
+
+    <h3>What you can do here</h3>
+    <ul>
+      <li><strong>Paste or drop</strong> screenshots, images, sketches. They land as draggable cards.</li>
+      <li><strong>Annotate</strong> with arrows, highlighted regions, captions. Four colors map to the same pressure palette as the Reflect heatmap.</li>
+      <li><strong>Layer freely</strong>. Resize, reorder, group. The canvas is yours.</li>
+      <li><strong>Save</strong> renders the full board to a PNG and writes a companion markdown file with metadata into your vault, so you can cross-link it from any note.</li>
+      <li><strong>Hit Fix</strong> to send the annotated board to Claude. You get back a structured response: what's going on, what's missing, what to try next. The conversation continues in the Claude chat panel with the board attached.</li>
+    </ul>
+
+    <h3>What it's for</h3>
+    <p>
+      The board is a thinking surface for things that don't fit in markdown. Marking up a design before a review. Sketching system architecture so the structure is clear before you write code. Annotating a bug screenshot to share with a teammate. Building a problem map for a Reflect session. Anything where pointing at the picture is faster than describing it.
+    </p>
   </section>
 
   <!-- ─── 14 Keyboard shortcuts ────────────────────────────── -->

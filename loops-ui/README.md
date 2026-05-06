@@ -38,7 +38,7 @@ capture → Triage (decide) → Backlog (commit) → Plan (schedule) → Focus (
 - **Plan** is where Backlog items get pushed onto a calendar. Drag to schedule.
 - **Focus** is *right now*: the active timeblock or the next one starting today.
 
-Triage is the **gate**. Backlog is the **garden**. Focus is **right now**. Nothing skips ahead without a decision — that's the whole point.
+Triage is the **gate**. Backlog is the **shelf**. Focus is **right now**. Nothing skips ahead without a decision — that's the whole point.
 
 ## Quick start
 

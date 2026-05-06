@@ -159,13 +159,15 @@ function TriageStatsSection({ allLoops }: { allLoops: Loop[] }) {
       });
     const by = { accept: 0, someday: 0, drop: 0, snooze: 0 };
     let matched = 0;
+    let hasPredictions = false;
     for (const d of decided) {
       by[d.disposition] += 1;
+      if (d.matched_ai !== undefined && d.matched_ai !== null) hasPredictions = true;
       if (d.matched_ai) matched += 1;
     }
     const total = decided.length;
-    const rate = total > 0 ? matched / total : null;
-    return { total, by, rate };
+    const rate = total > 0 && hasPredictions ? matched / total : null;
+    return { total, by, rate, hasPredictions };
   }, [allLoops]);
 
   return (
@@ -199,12 +201,14 @@ function TriageStatsSection({ allLoops }: { allLoops: Loop[] }) {
               AI match rate
             </div>
             <div className="text-[20px] text-ink font-medium tabular-nums">
-              {stats.rate != null ? Math.round(stats.rate * 100) : 0}%
+              {stats.rate != null ? `${Math.round(stats.rate * 100)}%` : '—'}
             </div>
             <div className="text-[10px] text-ink-ghost mt-1 leading-snug">
-              {stats.rate != null && stats.rate < 0.5
-                ? 'Below 50% — the heuristic may need recalibration.'
-                : 'How often your decision matched the seeder.'}
+              {!stats.hasPredictions
+                ? 'No AI predictions to compare yet. Wire a seeder to populate.'
+                : stats.rate != null && stats.rate < 0.5
+                  ? 'Below 50%. The heuristic may need recalibration.'
+                  : 'How often your decision matched the seeder.'}
             </div>
           </div>
         </div>

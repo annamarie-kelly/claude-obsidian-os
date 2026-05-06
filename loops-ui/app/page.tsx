@@ -59,7 +59,7 @@ import { TriageMigrationModal } from '@/components/TriageMigrationModal';
 import { ClaudeChat } from '@/components/ClaudeChat';
 import { VaultBrowser } from '@/components/VaultBrowser';
 import { NoteReader } from '@/components/NoteReader';
-import { CaptureBar } from '@/components/CaptureBar';
+import { CapturePopup } from '@/components/CapturePopup';
 import { FirstLaunchRitual } from '@/components/FirstLaunchRitual';
 import { FirstLaunchTour } from '@/components/FirstLaunchTour';
 import { SystemPanel } from '@/components/SystemPanel';
@@ -70,7 +70,7 @@ import {
   countActiveP1Stakeholder,
   countActiveP1Self,
 } from '@/lib/tend-gates';
-import { P1_STAKEHOLDER, P1_SELF } from '@/lib/config';
+import { P1_STAKEHOLDER, P1_SELF, config } from '@/lib/config';
 import { useVisiblePoll } from '@/hooks/useVisiblePoll';
 
 export default function Page() {
@@ -1776,11 +1776,14 @@ export default function Page() {
           />
         )}
 
-        {/* Capture bar — `c` from anywhere; lands in triage. */}
-        <CaptureBar
+        {/* Capture popup — `c` from anywhere; centered modal that
+            lets the user pick priority (and stakeholder for P1) at
+            capture time, so P0/P1 captures skip triage entirely. */}
+        <CapturePopup
           open={captureOpen}
           onClose={() => setCaptureOpen(false)}
           onCapture={createLoop}
+          stakeholderName={config.stakeholder.name ?? ''}
         />
 
         {/* System panel — `s` from anywhere or click the cog. */}

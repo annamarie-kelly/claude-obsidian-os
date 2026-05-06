@@ -192,11 +192,11 @@ export function CapturePopup({
       role="dialog"
       aria-modal="true"
       aria-label="Capture"
-      className="fixed inset-0 z-[60] flex items-start justify-center pt-[18vh] px-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center px-4"
       onClick={onClose}
     >
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
         aria-hidden
       />
       <div

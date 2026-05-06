@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something new or different.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For "would it be cool if...?" thinking, [Discussions](https://github.com/annamarie-kelly/loops-os/discussions) is often a better fit. Issues are for concrete asks where the path is clear.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What's the friction or gap you're hitting? Lead with the situation, not the solution.
+      placeholder: When I'm in Triage and a loop is ambiguous, I want to defer the decision but not lose context — currently I have to drop into Backlog and refile.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What you'd like to see
+      description: Your proposed solution. Specific is better than vague.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: What did you try first? What workarounds exist today?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: How often does this come up? What does your workflow look like?
+    validations:
+      required: false

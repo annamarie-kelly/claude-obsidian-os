@@ -2,6 +2,10 @@
 
 **A local-first AI planner for Obsidian vaults.** Scans every `- [ ]` across your notes, infers priority from natural language, and lays out a week canvas that routes around your calendar — all while keeping the source of truth in markdown. No database, no cloud, no vendor.
 
+> **→ [Read the complete guide](https://annamarie-kelly.github.io/loops-os/)** for the full tour with screenshots and a chat panel that searches across every section. Or skip to [Quickstart](#quickstart) below.
+>
+> Have a question? [Discussions](https://github.com/annamarie-kelly/loops-os/discussions) · Bug? [Issues](https://github.com/annamarie-kelly/loops-os/issues)
+
 ---
 
 ## What it does

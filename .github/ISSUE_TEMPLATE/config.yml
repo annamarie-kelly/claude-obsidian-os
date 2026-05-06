@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/annamarie-kelly/loops-os/discussions
+    about: Have a question, want to share how you use Loops OS, or want to brainstorm ideas? Use Discussions instead — questions are easier to find and answer there.
+  - name: Read the guide
+    url: https://annamarie-kelly.github.io/loops-os/
+    about: The complete guide covers most "how does X work?" questions with a chat panel that searches across every section.

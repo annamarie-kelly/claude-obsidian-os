@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loops OS · A Complete Guide</title>
+<style>
+  /* ─── Tokens ────────────────────────────────────────────────── */
+  :root[data-theme="dark"] {
+    --bg: #1C1A18;
+    --surface: #2A2826;
+    --surface-soft: #211F1D;
+    --elevated: #322F2D;
+    --ink: #F2EEE9;
+    --ink-soft: #CFC9C2;
+    --ink-ghost: #9E9891;
+    --ink-faint: #7D7872;
+    --edge: #3A3836;
+    --edge-soft: #2F2D2B;
+    --mauve: #B898A8;
+    --mauve-deep: #7D6872;
+    --mauve-fill: rgba(184, 152, 168, 0.08);
+    --sage: #A8BDA8;
+    --sage-deep: #8A9D8A;
+    --tan: #C7B97F;
+    --tan-deep: #A89968;
+    --rose: #E2A299;
+    --rose-deep: #D4928A;
+    --shadow-strong: 0 30px 80px -20px rgba(0,0,0,0.6);
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.02), 0 8px 24px -12px rgba(0,0,0,0.5);
+    --grain-opacity: 0.025;
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F0EA;
+    --surface: #EAE5DD;
+    --surface-soft: #ECE7DF;
+    --elevated: #FFFFFF;
+    --ink: #1A1816;
+    --ink-soft: #3D3935;
+    --ink-ghost: #6B655E;
+    --ink-faint: #8E867E;
+    --edge: #D6CFC4;
+    --edge-soft: #DFD8CE;
+    --mauve: #6F4E61;
+    --mauve-deep: #4F3645;
+    --mauve-fill: rgba(111, 78, 97, 0.08);
+    --sage: #5C7A5C;
+    --sage-deep: #3F5A3F;
+    --tan: #8B6F2A;
+    --tan-deep: #65501C;
+    --rose: #B85F4E;
+    --rose-deep: #8E4537;
+    --shadow-strong: 0 30px 80px -20px rgba(0,0,0,0.15);
+    --shadow-card: 0 1px 0 rgba(0,0,0,0.02), 0 8px 24px -12px rgba(0,0,0,0.1);
+    --grain-opacity: 0.04;
+  }
+
+  /* ─── Reset ─────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 60px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--bg);
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    transition: background 280ms ease, color 200ms ease;
+  }
+
+  /* Subtle film grain so the page doesn't feel digitally flat. */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 1;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+  }
+
+  /* ─── Progress bar (top) ────────────────────────────────────── */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: var(--mauve-deep);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    z-index: 60;
+    transition: transform 80ms ease-out;
+  }
+
+  /* ─── Top bar ───────────────────────────────────────────────── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 48px;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    border-bottom: 1px solid var(--edge-soft);
+    z-index: 50;
+    display: flex; align-items: center;
+    padding: 0 28px;
+    font-size: 11px;
+  }
+  .topbar-left {
+    display: flex; align-items: center; gap: 14px;
+    color: var(--ink-soft);
+    flex: 1;
+  }
+  .topbar-mark {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--mauve);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mauve) 18%, transparent);
+  }
+  .topbar-title {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+  .topbar-title strong { color: var(--ink); font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 6px; }
+  .iconbtn {
+    background: transparent;
+    color: var(--ink-ghost);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.02em;
+  }
+  .iconbtn:hover { color: var(--ink); background: var(--surface); border-color: var(--edge-soft); }
+  .iconbtn .glyph {
+    width: 14px; height: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ─── Page layout ──────────────────────────────────────────── */
+  .shell {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 96px 28px 160px;
+    z-index: 2;
+  }
+
+  /* ─── Hero ─────────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    padding: 56px 0 80px;
+    border-bottom: 1px solid var(--edge-soft);
+    margin-bottom: 64px;
+    animation: fadeUp 800ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero-eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-ghost);
+    margin-bottom: 28px;
+    display: flex; align-items: center; gap: 10px;
+    animation: fadeUp 700ms 50ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero-eyebrow .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--mauve);
+  }
+  .hero h1 {
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    font-weight: 500;
+    color: var(--ink);
+    max-width: 12ch;
+    animation: fadeUp 900ms 100ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mauve);
+  }
+  .hero-tagline {
+    margin-top: 32px;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 38ch;
+    animation: fadeUp 1000ms 200ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero-meta {
+    display: flex; gap: 28px; flex-wrap: wrap;
+    margin-top: 48px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-ghost);
+    letter-spacing: 0.04em;
+    animation: fadeUp 1100ms 300ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero-meta-item { display: flex; align-items: center; gap: 8px; }
+  .hero-meta-item .key {
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .hero-meta-item .val { color: var(--ink-soft); }
+
+  .hero-cta {
+    margin-top: 56px;
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 14px 22px;
+    background: var(--mauve-deep);
+    color: #FFFFFF;
+    border: 1px solid var(--mauve-deep);
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    animation: fadeUp 1200ms 400ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .hero-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--mauve-deep) 60%, transparent);
+  }
+  .hero-cta .arrow {
+    display: inline-block;
+    transition: transform 180ms ease;
+  }
+  .hero-cta:hover .arrow { transform: translateX(3px); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Section structure ───────────────────────────────────── */
+  .section {
+    position: relative;
+    padding: 64px 0;
+    max-width: 720px;
+    margin: 0 auto 0 0;
+    border-top: 1px solid var(--edge-soft);
+  }
+  .section:first-of-type { border-top: none; padding-top: 32px; }
+  .section:target { /* avoid stray outline */ outline: none; }
+
+  .section-marker {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-marker .num {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .section-marker .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mauve);
+    opacity: 0.7;
+  }
+  .section-marker.sage .pip   { background: var(--sage); }
+  .section-marker.tan .pip    { background: var(--tan); }
+  .section-marker.rose .pip   { background: var(--rose); }
+  .section-marker.mauve .pip  { background: var(--mauve); }
+
+  .section h2 {
+    font-size: clamp(26px, 3.5vw, 36px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.18;
+    color: var(--ink);
+    margin-bottom: 20px;
+    max-width: 22ch;
+  }
+  .section h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 40px 0 12px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin: 28px 0 8px;
+    letter-spacing: 0.005em;
+  }
+  .section p {
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    max-width: 64ch;
+  }
+  .section p strong { color: var(--ink); font-weight: 600; }
+  .section p em { color: var(--ink); font-style: italic; }
+
+  .lede {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink) !important;
+    max-width: 56ch;
+    margin-bottom: 24px !important;
+  }
+
+  .section ul, .section ol {
+    margin: 0 0 22px 0;
+    padding: 0;
+    list-style: none;
+    color: var(--ink-soft);
+    max-width: 60ch;
+  }
+  .section ul li {
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 10px;
+    line-height: 1.55;
+  }
+  .section ul li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 11px;
+    width: 8px; height: 1px;
+    background: var(--ink-faint);
+  }
+  .section ol {
+    counter-reset: olist;
+  }
+  .section ol li {
+    counter-increment: olist;
+    position: relative;
+    padding-left: 32px;
+    margin-bottom: 12px;
+    line-height: 1.55;
+  }
+  .section ol li::before {
+    content: counter(olist, decimal-leading-zero);
+    position: absolute;
+    left: 0; top: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.05em;
+    line-height: 1.65;
+    padding-top: 4px;
+  }
+  .section li strong { color: var(--ink); }
+
+  .section a {
+    color: var(--mauve);
+    text-decoration: none;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    padding-bottom: 2px;
+    transition: background-size 220ms ease, color 140ms ease;
+  }
+  .section a:hover {
+    background-size: 100% 1px;
+  }
+
+  /* ─── Code ──────────────────────────────────────────────────── */
+  code, pre, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .section code {
+    background: var(--surface);
+    border: 1px solid var(--edge-soft);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+    max-width: 100%;
+    color: var(--ink-soft);
+  }
+  pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--ink-soft);
+    font-size: inherit;
+  }
+
+  /* The big setup curl block */
+  .install-block {
+    position: relative;
+    background:
+      radial-gradient(ellipse at top left, color-mix(in srgb, var(--mauve) 8%, transparent), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 26px 28px 22px;
+    margin: 28px 0 32px;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+  .install-block::before {
+    content: "$";
+    position: absolute;
+    top: 18px; left: 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--ink-ghost);
+  }
+  .install-block-eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .install-block-cmd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink);
+    word-break: break-all;
+    padding-left: 18px;
+  }
+  .install-block-copy {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--elevated);
+    border: 1px solid var(--edge);
+    color: var(--ink-soft);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .install-block-copy:hover {
+    background: var(--mauve-fill);
+    color: var(--ink);
+    border-color: var(--mauve-deep);
+  }
+  .install-block-copy.copied {
+    background: color-mix(in srgb, var(--sage) 14%, transparent);
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+
+  /* ─── Mental model diagram ─────────────────────────────────── */
+  .diagram {
+    position: relative;
+    margin: 32px 0 36px;
+    padding: 36px 28px;
+    background:
+      linear-gradient(180deg, var(--surface-soft), var(--surface));
+    border: 1px solid var(--edge-soft);
+    border-radius: 12px;
+    overflow-x: auto;
+  }
+  .diagram-row {
+    display: flex; align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    min-width: 600px;
+    justify-content: space-between;
+  }
+  .node {
+    flex: 1;
+    min-width: 92px;
+    background: var(--elevated);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+    position: relative;
+  }
+  .node-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .node-sub {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+  .node .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    margin: 0 auto 8px;
+    background: var(--mauve);
+  }
+  .node.sage .pip   { background: var(--sage); }
+  .node.tan .pip    { background: var(--tan); }
+  .node.rose .pip   { background: var(--rose); }
+  .node.mauve .pip  { background: var(--mauve); }
+  .arrow {
+    flex: 0 0 24px;
+    color: var(--ink-faint);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    text-align: center;
+    user-select: none;
+  }
+  .diagram-exits {
+    margin-top: 22px;
+    display: flex; gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  .diagram-exits .exit-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 11px;
+    background: var(--surface-soft);
+    border: 1px solid var(--edge-soft);
+    border-radius: 999px;
+  }
+  .diagram-exits .exit-pill .pip { width: 5px; height: 5px; border-radius: 50%; }
+  .diagram-exits .exit-pill .pip.tan { background: var(--tan); }
+  .diagram-exits .exit-pill .pip.rose { background: var(--rose); }
+
+  .diagram-caption {
+    margin-top: 20px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  /* ─── Screenshot placeholders ──────────────────────────────── */
+  .screenshot {
+    margin: 28px 0 32px;
+  }
+  .screenshot-frame {
+    aspect-ratio: 16 / 10;
+    background:
+      repeating-linear-gradient(
+        45deg,
+        color-mix(in srgb, var(--ink) 1.5%, transparent),
+        color-mix(in srgb, var(--ink) 1.5%, transparent) 12px,
+        transparent 12px,
+        transparent 24px
+      ),
+      var(--surface-soft);
+    border: 1.5px dashed var(--edge);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .screenshot-frame .screenshot-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    text-align: center;
+    padding: 0 24px;
+    line-height: 1.5;
+  }
+  .screenshot-frame::before {
+    content: "";
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 36px; height: 8px;
+    background:
+      radial-gradient(circle at 4px center, var(--rose-deep) 3px, transparent 3px),
+      radial-gradient(circle at 16px center, var(--tan-deep) 3px, transparent 3px),
+      radial-gradient(circle at 28px center, var(--sage-deep) 3px, transparent 3px);
+    opacity: 0.45;
+  }
+  .screenshot figcaption {
+    margin-top: 12px;
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--ink-ghost);
+    line-height: 1.45;
+    max-width: 56ch;
+  }
+
+  /* ─── Stat / spec rows ─────────────────────────────────────── */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--edge-soft);
+    border: 1px solid var(--edge-soft);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 24px 0 28px;
+  }
+  .spec-cell {
+    background: var(--surface-soft);
+    padding: 18px 20px;
+  }
+  .spec-cell .key {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .spec-cell .val {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .spec-cell .val .accent { color: var(--mauve); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+  /* ─── Keyboard table ──────────────────────────────────────── */
+  .keys-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 28px;
+    font-size: 13px;
+  }
+  .keys-table th {
+    text-align: left;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    font-weight: 500;
+    padding: 8px 16px 12px 0;
+    border-bottom: 1px solid var(--edge);
+  }
+  .keys-table td {
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--edge-soft);
+    color: var(--ink-soft);
+    vertical-align: top;
+  }
+  .keys-table td:first-child {
+    width: 130px;
+    white-space: nowrap;
+  }
+  .kbd {
+    display: inline-block;
+    background: var(--elevated);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+    margin-right: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  }
+  :root[data-theme="light"] .kbd { box-shadow: 0 1px 0 rgba(0,0,0,0.05); }
+
+  /* ─── Pull quote ──────────────────────────────────────────── */
+  .pullquote {
+    margin: 36px 0;
+    padding: 28px 0 28px 28px;
+    border-left: 2px solid var(--mauve);
+    font-size: 22px;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    max-width: 36ch;
+    font-weight: 400;
+  }
+  .pullquote em {
+    color: var(--mauve);
+    font-style: italic;
+  }
+  .pullquote .attr {
+    margin-top: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    font-weight: 400;
+    display: block;
+  }
+
+  /* ─── Skills list ─────────────────────────────────────────── */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--edge-soft);
+    border: 1px solid var(--edge-soft);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 22px 0 28px;
+  }
+  .skill {
+    background: var(--surface-soft);
+    padding: 16px 18px;
+  }
+  .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .skill-name .slash { color: var(--mauve); }
+  .skill-desc {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* ─── Footer ──────────────────────────────────────────────── */
+  footer {
+    max-width: 720px;
+    margin: 80px auto 0 0;
+    padding: 36px 0 0;
+    border-top: 1px solid var(--edge-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  footer a { color: var(--ink-soft); }
+  footer a:hover { color: var(--mauve); }
+
+  /* ─── Chat panel ──────────────────────────────────────────── */
+  .chat-toggle {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--mauve-deep);
+    color: #FFFFFF;
+    border: 1px solid var(--mauve-deep);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 55;
+    box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--mauve-deep) 60%, transparent);
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1.4), opacity 200ms;
+  }
+  .chat-toggle:hover {
+    transform: translateY(-2px) scale(1.04);
+  }
+  .chat-toggle svg {
+    width: 22px; height: 22px;
+  }
+  .chat-toggle.hidden {
+    transform: scale(0.6) translateY(8px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .chat-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 380px;
+    max-width: 90vw;
+    background: var(--surface);
+    border-left: 1px solid var(--edge);
+    z-index: 56;
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: var(--shadow-strong);
+  }
+  .chat-panel.open {
+    transform: translateX(0);
+  }
+  .chat-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--edge-soft);
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 14px;
+  }
+  .chat-title {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .chat-subtitle {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .chat-close {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink-ghost);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 140ms ease;
+    font-size: 16px;
+  }
+  .chat-close:hover {
+    background: var(--elevated);
+    color: var(--ink);
+    border-color: var(--edge);
+  }
+
+  .chat-body {
+    flex: 1; overflow-y: auto;
+    padding: 18px 18px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--edge) transparent;
+  }
+  .chat-body::-webkit-scrollbar { width: 8px; }
+  .chat-body::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 4px; }
+
+  .chat-empty {
+    margin-top: 40px;
+    text-align: center;
+    color: var(--ink-ghost);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 0 16px;
+  }
+  .chat-empty .glyph {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 22px;
+    color: var(--mauve);
+    margin-bottom: 14px;
+    display: block;
+  }
+  .chat-empty strong { color: var(--ink); display: block; margin-bottom: 8px; font-weight: 500; }
+  .chat-empty .suggestions {
+    margin-top: 18px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .chat-empty .suggestion {
+    display: block;
+    padding: 8px 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--edge-soft);
+    border-radius: 6px;
+    color: var(--ink-soft);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 140ms ease;
+    font-family: inherit;
+    width: 100%;
+  }
+  .chat-empty .suggestion:hover {
+    background: var(--elevated);
+    color: var(--ink);
+    border-color: var(--mauve);
+  }
+
+  .msg {
+    margin-bottom: 14px;
+    display: flex; flex-direction: column;
+    animation: msgIn 280ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+  .msg.user { align-items: flex-end; }
+  .msg.bot { align-items: flex-start; }
+  .msg-bubble {
+    max-width: 86%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .msg.user .msg-bubble {
+    background: var(--mauve-deep);
+    color: #FFFFFF;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.bot .msg-bubble {
+    background: var(--surface-soft);
+    border: 1px solid var(--edge-soft);
+    color: var(--ink-soft);
+    border-bottom-left-radius: 4px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .msg.bot .preamble {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  .msg.bot .result {
+    padding: 10px 12px;
+    background: var(--elevated);
+    border: 1px solid var(--edge-soft);
+    border-radius: 6px;
+    margin-top: 8px;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .msg.bot .result:hover {
+    border-color: var(--mauve);
+    transform: translateX(2px);
+  }
+  .msg.bot .result-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .msg.bot .result-title .arrow {
+    color: var(--mauve);
+    transition: transform 140ms ease;
+  }
+  .msg.bot .result:hover .result-title .arrow { transform: translateX(2px); }
+  .msg.bot .result-quote {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    font-style: italic;
+  }
+  .msg.bot .empty-result {
+    padding: 12px;
+    background: var(--elevated);
+    border: 1px solid var(--edge-soft);
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--ink-ghost);
+    line-height: 1.5;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-footer {
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--edge-soft);
+    background: var(--surface);
+  }
+  .chat-input-wrap {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--elevated);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 6px 6px 6px 12px;
+    transition: border-color 140ms ease;
+  }
+  .chat-input-wrap:focus-within {
+    border-color: var(--mauve);
+  }
+  .chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    padding: 6px 0;
+    outline: none;
+    min-width: 0;
+  }
+  .chat-input::placeholder { color: var(--ink-faint); }
+  .chat-send {
+    background: var(--mauve-deep);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 140ms;
+  }
+  .chat-send:hover { opacity: 0.9; }
+  .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .chat-foot-note {
+    margin-top: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-align: center;
+    letter-spacing: 0.04em;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .chat-foot-note .connect {
+    background: transparent;
+    border: 1px solid var(--edge);
+    color: var(--ink-ghost);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .chat-foot-note .connect:hover {
+    color: var(--mauve);
+    border-color: var(--mauve);
+  }
+
+  /* ─── Modal (connect Claude) ──────────────────────────────── */
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 70;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-back.open { display: flex; animation: fadeIn 180ms ease; }
+  .modal {
+    width: 420px; max-width: 100%;
+    background: var(--elevated);
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow-strong);
+  }
+  .modal-eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--ink-faint); margin-bottom: 8px;
+  }
+  .modal h3 {
+    font-size: 18px; color: var(--ink); margin-bottom: 12px;
+    font-weight: 500; letter-spacing: -0.01em;
+  }
+  .modal p {
+    color: var(--ink-soft); font-size: 13px; line-height: 1.55;
+    margin-bottom: 16px;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    outline: none;
+    margin-bottom: 14px;
+  }
+  .modal-input:focus { border-color: var(--mauve); }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .modal .btn-ghost {
+    background: transparent; color: var(--ink-soft); border: 1px solid var(--edge);
+    border-radius: 6px; padding: 8px 14px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .modal .btn-ghost:hover { background: var(--surface); color: var(--ink); }
+  .modal .btn-primary {
+    background: var(--mauve-deep); color: #fff; border: 1px solid var(--mauve-deep);
+    border-radius: 6px; padding: 8px 14px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .modal .btn-primary:hover { opacity: 0.9; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ─── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .shell { padding: 80px 20px 120px; }
+    .hero { padding: 32px 0 56px; margin-bottom: 40px; }
+    .hero h1 { font-size: 38px; }
+    .hero-tagline { font-size: 16px; }
+    .section { padding: 48px 0; }
+    .section h2 { font-size: 26px; }
+    .skills-grid, .spec-grid { grid-template-columns: 1fr; }
+    .topbar { padding: 0 16px; }
+    .topbar-title { display: none; }
+    .pullquote { font-size: 18px; padding-left: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progressBar"></div>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-mark"></span>
+    <span class="topbar-title">loops-os <strong>guide</strong></span>
+  </div>
+  <div class="topbar-right">
+    <button class="iconbtn" id="themeToggle" type="button" title="Toggle theme">
+      <span class="glyph" id="themeGlyph">◐</span>
+      <span id="themeLabel">dark</span>
+    </button>
+    <a href="#setup" class="iconbtn" style="color: var(--mauve); border-color: transparent;">
+      <span class="glyph">→</span>
+      <span>install</span>
+    </a>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- ─── Hero ─────────────────────────────────────────────── -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-eyebrow">
+      <span class="dot"></span>
+      <span>A complete guide</span>
+      <span style="opacity:0.5;">/</span>
+      <span>v0.1</span>
+    </div>
+    <h1 id="hero-title">
+      Loops <em>OS</em>.<br/>
+      A thinking surface<br/>
+      for the <em>loose ends</em><br/>
+      in your head.
+    </h1>
+    <p class="hero-tagline">
+      Capture them. Triage them. Schedule them. Reflect on them. Plain markdown to a folder you own. A chat panel that knows the whole guide.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><span class="key">Reads</span><span class="val">~12 min</span></div>
+      <div class="hero-meta-item"><span class="key">Sections</span><span class="val">17</span></div>
+      <div class="hero-meta-item"><span class="key">Audience</span><span class="val">curious humans</span></div>
+    </div>
+    <a href="#setup" class="hero-cta">
+      <span>Skip to install</span>
+      <span class="arrow">→</span>
+    </a>
+  </section>
+
+  <!-- ─── 01 What it is ────────────────────────────────────── -->
+  <section class="section" id="what-it-is">
+    <div class="section-marker mauve">
+      <span class="num">01</span>
+      <span class="pip"></span>
+      <span>What it is</span>
+    </div>
+    <h2>A personal OS for the things you've half-thought, half-promised, half-started.</h2>
+    <p class="lede">
+      Loops OS is a thinking surface for the loose ends in your head. The "I should..." statements that pile up faster than you can ship them. The tasks that aren't quite tasks yet. The ideas that need a decision before they need a doer.
+    </p>
+    <p>
+      It captures them, triages them, schedules them, and reflects on them. Then writes everything as plain markdown to a folder on disk, so the day this app dies, your data doesn't.
+    </p>
+    <p>
+      Most task tools optimize for ticking boxes. Loops OS optimizes for the moment <em>before</em> that: deciding what's worth a box at all, where it sits relative to everything else, and whether you've been spending your week on the things you said mattered.
+    </p>
+  </section>
+
+  <!-- ─── 02 The mental model ──────────────────────────────── -->
+  <section class="section" id="mental-model">
+    <div class="section-marker">
+      <span class="num">02</span>
+      <span class="pip"></span>
+      <span>The mental model</span>
+    </div>
+    <h2>A loop moves through four states. The four modes are the surfaces for each.</h2>
+    <p class="lede">
+      Capture is the door. Triage is the gate. Backlog is the garden. Plan is the calendar. Focus is right now. Nothing skips ahead without a decision.
+    </p>
+
+    <div class="diagram" aria-label="Mental model diagram">
+      <div class="diagram-row">
+        <div class="node mauve">
+          <div class="pip"></div>
+          <div class="node-label">Capture</div>
+          <div class="node-sub">door</div>
+        </div>
+        <span class="arrow">→</span>
+        <div class="node tan">
+          <div class="pip"></div>
+          <div class="node-label">Triage</div>
+          <div class="node-sub">gate</div>
+        </div>
+        <span class="arrow">→</span>
+        <div class="node sage">
+          <div class="pip"></div>
+          <div class="node-label">Backlog</div>
+          <div class="node-sub">garden</div>
+        </div>
+        <span class="arrow">→</span>
+        <div class="node mauve">
+          <div class="pip"></div>
+          <div class="node-label">Plan</div>
+          <div class="node-sub">calendar</div>
+        </div>
+        <span class="arrow">→</span>
+        <div class="node rose">
+          <div class="pip"></div>
+          <div class="node-label">Focus</div>
+          <div class="node-sub">right now</div>
+        </div>
+      </div>
+      <div class="diagram-exits">
+        <span class="exit-pill"><span class="pip tan"></span>Someday (defer)</span>
+        <span class="exit-pill"><span class="pip rose"></span>Done (drop / ship)</span>
+      </div>
+      <div class="diagram-caption">A loop's whole life</div>
+    </div>
+
+    <p>
+      <strong>Triage</strong> answers <em>"what just landed and needs a decision?"</em>. One card at a time, three keys (1/2/3) move them out fast. Empty Triage is the goal state.
+    </p>
+    <p>
+      <strong>Backlog</strong> answers <em>"what am I committed to but not working on right now?"</em>. Items only land here after you accept them in Triage (or mark them P0 to bypass).
+    </p>
+    <p>
+      <strong>Plan</strong> is where Backlog items get pushed onto a calendar. Drag to schedule. <strong>Focus</strong> is the active timeblock or the next one starting today.
+    </p>
+  </section>
+
+  <!-- ─── 03 Capture ───────────────────────────────────────── -->
+  <section class="section" id="capture">
+    <div class="section-marker mauve">
+      <span class="num">03</span>
+      <span class="pip"></span>
+      <span>Capture</span>
+    </div>
+    <h2>Three ways in. All roads lead to <code>00-Inbox/</code> and <code>06-Loops/loops.json</code>.</h2>
+    <p class="lede">
+      Capture is intentionally low-friction. The whole system breaks down if you don't trust that the thing you just thought is going to land somewhere safe.
+    </p>
+
+    <h3>1. In-app: press <code>c</code></h3>
+    <p>
+      A bottom-of-screen capture bar slides up. Type, hit Enter. Stays open for chained capture (rattle off five things in a row), Esc to close. Empty Enter is a no-op so you don't accidentally tear it down mid-thought.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="capture-bar">
+        <span class="screenshot-label">[Screenshot: capture bar slide-up overlay]</span>
+      </div>
+      <figcaption>The capture bar lands at the bottom edge. Whatever you type goes straight to Triage.</figcaption>
+      <!-- Replace with: <img src="screenshots/capture-bar.png" alt="Capture bar slide-up overlay"> -->
+    </figure>
+
+    <h3>2. Chrome extension: <span class="kbd">⌘⇧L</span> from any tab</h3>
+    <p>
+      Capture from anywhere on the web without leaving the page. The page link auto-fills as a chip. Pick tags, add a note, ship it. Two flavors via a toggle:
+    </p>
+    <ul>
+      <li><strong>Loop → Triage</strong>: lands in <code>06-Loops/loops.json</code> with <code>status: triage</code>. For thoughts that need a decision.</li>
+      <li><strong>Clip → Vault</strong>: writes a markdown file to <code>00-Inbox/clips/&lt;date&gt;-&lt;slug&gt;.md</code> with frontmatter. For quotes, articles, things you want to keep without triaging.</li>
+    </ul>
+    <p>
+      Auto-flips to <strong>Clip</strong> when it detects a text selection on the page (you highlighted something to keep). Right-click any selection → <em>Clip selection to Loops</em> for one-shot capture without opening the popup.
+    </p>
+
+    <h3>3. MCP integrations</h3>
+    <p>
+      Wire your meeting notes (Granola), your CRM (Affinity), your task tracker (Linear), or your inbox into a <code>/inbox</code> skill. Run <code>/inbox</code> from Claude Code and it pulls today's signal from those sources, drops it into <code>00-Inbox/</code> as draft notes, and you triage them in the app. The pull is yours: configure what gets pulled and how.
+    </p>
+  </section>
+
+  <!-- ─── 04 Triage ────────────────────────────────────────── -->
+  <section class="section" id="triage">
+    <div class="section-marker tan">
+      <span class="num">04</span>
+      <span class="pip"></span>
+      <span>Triage</span>
+    </div>
+    <h2>The gate. One card at a time, three keys, no fence-sitting.</h2>
+    <p class="lede">
+      New captures land in Triage with <code>status: triage</code>. They don't appear in any other surface (Focus, Plan, Backlog, Reflect) until you make a decision. This is on purpose. Undecided items shouldn't be allowed to vote.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="triage-mode">
+        <span class="screenshot-label">[Screenshot: Triage mode card with 1/2/3 keys]</span>
+      </div>
+      <figcaption>One card. Three keys. Empty Triage is the goal state.</figcaption>
+      <!-- Replace with: <img src="screenshots/triage-mode.png" alt="Triage card view"> -->
+    </figure>
+
+    <h3>The three decisions</h3>
+    <ul>
+      <li><span class="kbd">1</span> <strong>Accept</strong>: this matters, into the Backlog with a P-level.</li>
+      <li><span class="kbd">2</span> <strong>Someday</strong>: not now, not no, just not this week. Goes to the Someday shelf.</li>
+      <li><span class="kbd">3</span> <strong>Drop</strong>: not happening. Closes the loop with <code>closedAs: dropped</code>.</li>
+    </ul>
+
+    <h3>Capacity caps</h3>
+    <p>
+      The triage gate enforces P1 capacity. If accepting this loop would put you over your stakeholder cap (default 8) or self cap (default 5), you get a <em>Capacity Gate</em> modal. You can override (logged to your boundary log) or rerank existing P1s. Caps are configurable per-stakeholder in <code>loops.config.json</code>.
+    </p>
+    <p>
+      The whole point of capacity caps: you don't accidentally end up with twelve P1:Boss loops because you couldn't say no in the moment. The gate makes the no explicit.
+    </p>
+  </section>
+
+  <!-- ─── 05 Backlog ───────────────────────────────────────── -->
+  <section class="section" id="backlog">
+    <div class="section-marker sage">
+      <span class="num">05</span>
+      <span class="pip"></span>
+      <span>Backlog</span>
+    </div>
+    <h2>The garden. Committed-but-not-doing-yet.</h2>
+    <p class="lede">
+      Backlog is your active working set. Loops accepted in Triage land here with a P-level and (optionally) a stakeholder. They wait without rotting in your inbox.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="backlog-grouped">
+        <span class="screenshot-label">[Screenshot: Backlog grouped by P-level + stakeholder]</span>
+      </div>
+      <figcaption>Group by P-level, by stakeholder, by mode. Sort by recency, by difficulty. Whatever lens you need.</figcaption>
+      <!-- Replace with: <img src="screenshots/backlog.png" alt="Backlog with grouping"> -->
+    </figure>
+
+    <h3>P-levels</h3>
+    <ul>
+      <li><strong>P0</strong>: drop everything. Bypasses the triage gate. Use sparingly.</li>
+      <li><strong>P1:&lt;stakeholder&gt;</strong> / <strong>P1:self</strong>: this week's must-do. Capacity-capped.</li>
+      <li><strong>P2</strong>: this week if there's room.</li>
+      <li><strong>P3</strong>: someday-soon, but on your radar.</li>
+    </ul>
+    <p>
+      Stakeholders are arbitrary. The default is whoever you flagged in <code>loops.config.json</code>, but you can introduce <code>P1:Alice</code>, <code>P1:design</code>, <code>P1:taxes</code>, whatever. Each one gets its own capacity cap.
+    </p>
+  </section>
+
+  <!-- ─── 06 Plan ──────────────────────────────────────────── -->
+  <section class="section" id="plan">
+    <div class="section-marker mauve">
+      <span class="num">06</span>
+      <span class="pip"></span>
+      <span>Plan</span>
+    </div>
+    <h2>The week as a canvas. Drag loops onto time.</h2>
+    <p class="lede">
+      A Mon-Fri grid. Calendar events render as fixed blocks (your week routes around them). Drag a loop from the sidebar onto a slot to schedule it. Drag again to resize.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="plan-canvas">
+        <span class="screenshot-label">[Screenshot: Plan mode week canvas with timeblocks]</span>
+      </div>
+      <figcaption>The schedule view. Calendar events in muted gray, loops in their P-level color.</figcaption>
+      <!-- Replace with: <img src="screenshots/plan-canvas.png" alt="Plan mode week view"> -->
+    </figure>
+
+    <p>
+      If a loop is scheduled but the slot conflicts with a calendar event, the scheduler splits the loop around the conflict (so a 90-minute loop becomes two 45-minute blocks if a 30-minute meeting lands in the middle). The principle: time you've already committed to other things isn't pliable.
+    </p>
+    <p>
+      Press <span class="kbd">[</span> / <span class="kbd">]</span> to collapse / expand the loops sidebar. Click any timeblock to drop into Focus on that loop.
+    </p>
+  </section>
+
+  <!-- ─── 07 Focus ─────────────────────────────────────────── -->
+  <section class="section" id="focus">
+    <div class="section-marker rose">
+      <span class="num">07</span>
+      <span class="pip"></span>
+      <span>Focus</span>
+    </div>
+    <h2>One loop on the screen. Everything else hidden.</h2>
+    <p class="lede">
+      Focus is right now. The active timeblock auto-selected. Notes inline. Source file rendered. Nothing distracting.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="focus-mode">
+        <span class="screenshot-label">[Screenshot: Focus mode with single loop centered]</span>
+      </div>
+      <figcaption>One loop. Mark complete with a single key. Move on.</figcaption>
+      <!-- Replace with: <img src="screenshots/focus-mode.png" alt="Focus mode single loop"> -->
+    </figure>
+
+    <p>
+      <span class="kbd">j</span> / <span class="kbd">k</span> to navigate between scheduled loops. <span class="kbd">x</span> to mark complete (and start the next one). When you've already decided what to work on, this is the mode you live in.
+    </p>
+  </section>
+
+  <!-- ─── 08 Reflect ───────────────────────────────────────── -->
+  <section class="section" id="reflect">
+    <div class="section-marker tan">
+      <span class="num">08</span>
+      <span class="pip"></span>
+      <span>Reflect</span>
+    </div>
+    <h2>30-day pressure heatmap, last-week stats, weekly stakeholder card.</h2>
+    <p class="lede">
+      Reflect surfaces the patterns under the activity. Where did the week's pressure go? What's been sitting in Triage too long? What did you ship for whom?
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="reflect-heatmap">
+        <span class="screenshot-label">[Screenshot: Reflect mode heatmap + stakeholder card]</span>
+      </div>
+      <figcaption>The heatmap colors days by dominant pressure type: building, improving, fixing, supporting.</figcaption>
+      <!-- Replace with: <img src="screenshots/reflect.png" alt="Reflect mode heatmap"> -->
+    </figure>
+
+    <ul>
+      <li><strong>Pressure heatmap</strong>: 30 days, four colors (sage / mauve / tan / rose) for the four pressure types. Patterns visible at a glance.</li>
+      <li><strong>Last-week triage stats</strong>: how many landed, how many accepted, how many dropped, how many overrode capacity.</li>
+      <li><strong>Pattern scan</strong>: word-frequency over recent loops surfaces the things that keep coming up.</li>
+      <li><strong>Stakeholder update card</strong>: optional weekly draft of what you shipped for your primary stakeholder.</li>
+    </ul>
+  </section>
+
+  <!-- ─── 09 The vault ─────────────────────────────────────── -->
+  <section class="section" id="vault">
+    <div class="section-marker">
+      <span class="num">09</span>
+      <span class="pip"></span>
+      <span>The vault</span>
+    </div>
+    <h2>Plain markdown. A folder you own. Future-proof by default.</h2>
+    <p class="lede">
+      Loops OS reads and writes a folder structure that happens to be Obsidian-compatible. If the app vanishes tomorrow, your data is still readable in TextEdit, vim, GitHub, anywhere markdown is.
+    </p>
+
+    <h3>Folder convention</h3>
+<pre><code>00-Inbox/       capture bucket; daily notes under 00-Inbox/Daily/
+01-Building/    projects, technical patterns, playbooks
+02-Thinking/    essays, ideas, references
+03-Working/     business operations, stakeholders, firm ops
+04-Living/      personal life
+05-Relating/    people notes
+06-Loops/       state files (required): loops.json, calendar-today.json, logs
+07-Archive/     done / dead / inactive (never deleted)</code></pre>
+
+    <p>
+      Only <code>06-Loops/</code> is strictly required. The rest is convention. Override scan folders in <code>loops.config.json</code> if your vault uses different names.
+    </p>
+
+    <h3>Frontmatter schema</h3>
+    <p>
+      Every note gets standard frontmatter so skills and the scanner know what they're looking at:
+    </p>
+<pre><code>---
+created: 2026-05-05
+type: project | pattern | playbook | essay | reference | person | loop
+status: active | someday | done | archived
+shelf-life: foundational | tactical | observational
+tags: []
+---</code></pre>
+
+    <h3>Use Obsidian if you want, don't if you don't</h3>
+    <p>
+      The vault drawer (<span class="kbd">⌘\</span>) browses files, the editor handles <code>[[wikilinks]]</code> with autocomplete, the note reader resolves backlinks. The full edit-create-search-link loop runs without ever opening Obsidian. But if you do use Obsidian, point it at the same folder and both surfaces stay in sync, edit a <code>- [ ]</code> in either place and the other picks it up.
+    </p>
+  </section>
+
+  <!-- ─── 10 Chrome extension ──────────────────────────────── -->
+  <section class="section" id="extension">
+    <div class="section-marker mauve">
+      <span class="num">10</span>
+      <span class="pip"></span>
+      <span>Chrome extension</span>
+    </div>
+    <h2>Capture the web in one keystroke.</h2>
+    <p class="lede">
+      Press <span class="kbd">⌘⇧L</span> from any tab. The capture popup auto-fills the page link and any text you've selected. Talks only to localhost. No external endpoints.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="chrome-extension">
+        <span class="screenshot-label">[Screenshot: Chrome extension popup with selection prefilled]</span>
+      </div>
+      <figcaption>Selection becomes a markdown blockquote. Click the toggle to switch between Loop (triage) and Clip (vault file).</figcaption>
+      <!-- Replace with: <img src="screenshots/chrome-extension.png" alt="Chrome extension popup"> -->
+    </figure>
+
+    <h3>Install</h3>
+    <ol>
+      <li>Open <code>chrome://extensions</code> and enable <strong>Developer mode</strong>.</li>
+      <li>Click <strong>Load unpacked</strong> and point at <code>loops-ui/tools/loops-capture-extension/</code>.</li>
+      <li>Pin the icon. Press <span class="kbd">⌘⇧L</span> from any page.</li>
+    </ol>
+
+    <p>
+      The extension auto-detects which port the loops-ui dev server is running on (probes 3456, 3457, etc.). Move your dev server, the extension re-detects on next capture.
+    </p>
+  </section>
+
+  <!-- ─── 11 Skills + Claude Code ──────────────────────────── -->
+  <section class="section" id="skills">
+    <div class="section-marker sage">
+      <span class="num">11</span>
+      <span class="pip"></span>
+      <span>Skills</span>
+    </div>
+    <h2>Slash commands for the verbs you actually do.</h2>
+    <p class="lede">
+      The vault ships with a <code>.claude/commands/</code> folder full of slash commands. Each one is a markdown file Claude Code reads as a skill. Run them from anywhere in the vault.
+    </p>
+
+    <div class="skills-grid">
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>start</div>
+        <div class="skill-desc">First-run onboarding. Preflight checks, install, seed, dev server.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>triage</div>
+        <div class="skill-desc">Walk the inbox card by card. Route to the right folder with frontmatter.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>distill</div>
+        <div class="skill-desc">Extract claim-style insights from raw input. Updates _patterns.md files.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>reflect</div>
+        <div class="skill-desc">Weekly reflection. Patterns, pressure, what shipped, what stalled.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>loops</div>
+        <div class="skill-desc">Surface open items by domain and priority. The dashboard view.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>commitments</div>
+        <div class="skill-desc">What did you commit to whom. The promise ledger.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>research</div>
+        <div class="skill-desc">Web research woven back into your vault. Connects to existing patterns.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>tend</div>
+        <div class="skill-desc">Terminal-side write surface. The CLI counterpart to the UI.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>priorities</div>
+        <div class="skill-desc">Weekly priorities. P1s, capacity reads, what got bumped.</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name"><span class="slash">/</span>review</div>
+        <div class="skill-desc">Weekly review. Whole-vault scan. Rolls up to a stakeholder summary.</div>
+      </div>
+    </div>
+
+    <p>
+      Skills are composable. <code>/distill</code> writes to <code>_patterns.md</code>, which <code>/reflect</code> reads. <code>/inbox</code> pulls signal that <code>/triage</code> walks. The vault is the source of truth, skills are verbs.
+    </p>
+  </section>
+
+  <!-- ─── 12 System panel ──────────────────────────────────── -->
+  <section class="section" id="system">
+    <div class="section-marker">
+      <span class="num">12</span>
+      <span class="pip"></span>
+      <span>System panel</span>
+    </div>
+    <h2>Press <span class="kbd">s</span>. See what's connected. See what each connection unlocks.</h2>
+    <p class="lede">
+      Most apps make you guess what's wired up. The System panel surfaces every integration as a row, with what it enables. No more "is the calendar connected? is Claude Code installed?" guesswork.
+    </p>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="system-panel">
+        <span class="screenshot-label">[Screenshot: System panel modal with status rows]</span>
+      </div>
+      <figcaption>The pattern: status icon, name, current state, then a "→ what this enables" hint.</figcaption>
+      <!-- Replace with: <img src="screenshots/system-panel.png" alt="System panel"> -->
+    </figure>
+
+    <p>Each row shows:</p>
+    <ul>
+      <li><strong>Vault</strong>: path, file count, last scan time. → "Read &amp; write surface for everything"</li>
+      <li><strong>Loops config</strong>: stakeholder name, caps. → "Stakeholder used in P1:&lt;name&gt;, caps gate triage"</li>
+      <li><strong>Calendar</strong>: event count, last sync. → "Plan view shows fixed blocks"</li>
+      <li><strong>Claude Code CLI</strong>: detected? → "Chat panel + skills" (or install hint)</li>
+      <li><strong>Obsidian</strong>: env var set? → "Open-in-Obsidian buttons in detail drawer"</li>
+      <li><strong>Chrome extension</strong>: last capture? → "⌘⇧L capture from any tab"</li>
+      <li><strong>MCP / Skills</strong>: skill count, /inbox present? → "/inbox, /triage etc. via /start"</li>
+    </ul>
+  </section>
+
+  <!-- ─── 13 First-launch flow ─────────────────────────────── -->
+  <section class="section" id="first-launch">
+    <div class="section-marker rose">
+      <span class="num">13</span>
+      <span class="pip"></span>
+      <span>First launch</span>
+    </div>
+    <h2>From paste-the-installer to ready-to-use in under three minutes.</h2>
+    <p class="lede">
+      Five gates, each with a graceful fallback. By the end you have a server running, a vault seeded with examples, and a tour walking you through the four modes.
+    </p>
+
+    <ol>
+      <li><strong>Installer</strong>: <code>curl -fsSL ... | bash</code> detects your platform, checks Node 20+ and git, clones the repo to <code>~/loops-os</code>, hands off.</li>
+      <li><strong>Preflight</strong>: <code>npm run start</code> runs system checks (Node version, port 3456, Claude Code CLI, Obsidian).</li>
+      <li><strong>Setup prompt</strong>: one question, optional. "Primary stakeholder name? (Enter to skip)". Writes to <code>loops.config.json</code>.</li>
+      <li><strong>Dev server + browser</strong>: starts Next.js, opens <code>http://localhost:3456</code> in your default browser.</li>
+      <li><strong>Ritual + tour</strong>: a fullscreen ritual asks "what are you trying to ship in the next two weeks?", then a quiet bottom-right card walks you through Triage → Backlog → Plan → Focus.</li>
+    </ol>
+
+    <figure class="screenshot">
+      <div class="screenshot-frame" data-screenshot="first-launch-tour">
+        <span class="screenshot-label">[Screenshot: first-launch tour card bottom-right]</span>
+      </div>
+      <figcaption>The tour: a single floating card per step, with the actual mode visible behind it. No backdrop, no overlay, no walls.</figcaption>
+      <!-- Replace with: <img src="screenshots/first-launch-tour.png" alt="First-launch tour card"> -->
+    </figure>
+  </section>
+
+  <!-- ─── 14 Keyboard shortcuts ────────────────────────────── -->
+  <section class="section" id="shortcuts">
+    <div class="section-marker">
+      <span class="num">14</span>
+      <span class="pip"></span>
+      <span>Shortcuts</span>
+    </div>
+    <h2>Four keys cover the bulk of the day. The rest are mode-specific.</h2>
+
+    <h3>Global</h3>
+    <table class="keys-table">
+      <thead>
+        <tr><th>Key</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="kbd">c</span></td><td>Capture a thought into Triage. Stays open for chained capture.</td></tr>
+        <tr><td><span class="kbd">⌘</span><span class="kbd">\</span></td><td>Open the vault drawer. Browse, search, jump to today's daily note.</td></tr>
+        <tr><td><span class="kbd">⌘</span><span class="kbd">K</span></td><td>Search every loop by text, stakeholder, or tag.</td></tr>
+        <tr><td><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">A</span></td><td>Adopt a loop with a structured form (text, priority, stakeholder, estimate).</td></tr>
+        <tr><td><span class="kbd">s</span></td><td>Open the System panel. See what's connected.</td></tr>
+        <tr><td><span class="kbd">?</span></td><td>Show keyboard shortcuts overlay (planned).</td></tr>
+        <tr><td><span class="kbd">Esc</span></td><td>Back out of anything. Always.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>In Triage</h3>
+    <table class="keys-table">
+      <tbody>
+        <tr><td><span class="kbd">1</span></td><td>Accept (move to Backlog with a P-level).</td></tr>
+        <tr><td><span class="kbd">2</span></td><td>Someday (defer indefinitely).</td></tr>
+        <tr><td><span class="kbd">3</span></td><td>Drop (close as dropped).</td></tr>
+      </tbody>
+    </table>
+
+    <h3>In Focus / Plan</h3>
+    <table class="keys-table">
+      <tbody>
+        <tr><td><span class="kbd">j</span> / <span class="kbd">k</span></td><td>Navigate between loops in Focus.</td></tr>
+        <tr><td><span class="kbd">[</span> / <span class="kbd">]</span></td><td>Collapse / expand the Plan sidebar.</td></tr>
+        <tr><td><span class="kbd">x</span></td><td>Mark current loop complete.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>From any web page (Chrome extension)</h3>
+    <table class="keys-table">
+      <tbody>
+        <tr><td><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">L</span></td><td>Open the capture popup. Type, tag, send.</td></tr>
+        <tr><td>right-click selection</td><td>Clip selection to Loops (one-shot, no popup).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─── 15 Setup ─────────────────────────────────────────── -->
+  <section class="section" id="setup">
+    <div class="section-marker mauve">
+      <span class="num">15</span>
+      <span class="pip"></span>
+      <span>Setup</span>
+    </div>
+    <h2>Paste one line. The rest is automatic.</h2>
+    <p class="lede">
+      You need <strong>Node 20+</strong> and <strong>git</strong>. Everything else is optional. The installer detects what's missing and tells you how to fix it.
+    </p>
+
+    <div class="install-block" id="installBlock">
+      <button class="install-block-copy" id="installCopy" type="button">copy</button>
+      <div class="install-block-eyebrow">Install (mac · linux)</div>
+      <div class="install-block-cmd" id="installCmd">curl -fsSL https://raw.githubusercontent.com/annamarie-kelly/loops-os/main/install.sh | bash</div>
+    </div>
+
+    <p>
+      The script is short and readable. Review it on GitHub before piping if you're cautious. It clones the repo to <code>~/loops-os</code> (override with <code>LOOPS_OS_DIR=/path</code>) then hands off to <code>npm run start</code>, which runs preflight, installs deps, prompts for setup, starts the dev server, and opens the browser.
+    </p>
+
+    <h3>Or, manually</h3>
+<pre><code>git clone https://github.com/annamarie-kelly/loops-os.git
+cd loops-os/loops-ui
+npm run start</code></pre>
+
+    <h3>Windows</h3>
+    <p>
+      The installer doesn't support Windows yet. Use the manual path above. A native <code>install.ps1</code> is on the roadmap.
+    </p>
+
+    <h3>Requirements</h3>
+    <div class="spec-grid">
+      <div class="spec-cell">
+        <div class="key">Required</div>
+        <div class="val"><span class="accent">Node 20+</span> &nbsp; <span class="accent">git</span></div>
+      </div>
+      <div class="spec-cell">
+        <div class="key">Optional (unlocks features)</div>
+        <div class="val"><span class="accent">Claude Code CLI</span> &nbsp; <span class="accent">Obsidian</span> &nbsp; <span class="accent">Chrome</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 16 Configuration ─────────────────────────────────── -->
+  <section class="section" id="config">
+    <div class="section-marker">
+      <span class="num">16</span>
+      <span class="pip"></span>
+      <span>Configuration</span>
+    </div>
+    <h2>Two files. Both optional. Defaults work.</h2>
+
+    <h3><code>loops.config.json</code></h3>
+    <p>
+      Stakeholder name, capacity caps, scan folders, scanner stakeholder keywords. Read at build time, restart <code>npm run dev</code> after editing.
+    </p>
+<pre><code>{
+  "vault": {
+    "scanFolders": ["00-Inbox", "01-Building", "02-Thinking", "03-Working", "04-Living"],
+    "inboxFile": "00-Inbox/manual-loops.md"
+  },
+  "stakeholder": {
+    "name": "Boss",
+    "tag": "Boss",
+    "capacityMax": 8,
+    "weeklySummary": true
+  },
+  "self": { "capacityMax": 5 },
+  "priorityCaps": { "P1Flat": 8, "P2Flat": 20 }
+}</code></pre>
+
+    <h3><code>.env.local</code></h3>
+    <p>
+      Environment overrides. All optional. Defaults to the bundled <code>vault-template/</code>.
+    </p>
+<pre><code># Path to your vault. Defaults to ../vault-template
+LOOPS_UI_VAULT_ROOT=/absolute/path/to/your/vault
+
+# Obsidian vault folder name (enables "Open in Obsidian" buttons)
+NEXT_PUBLIC_OBSIDIAN_VAULT=your-vault-name
+
+# Folder where agent specs live (default: 01-Building/Agent Specs)
+LOOPS_SPECS_FOLDER=01-Building/Agent Specs</code></pre>
+
+    <p>
+      See <code>loops-ui/.env.example</code> in the repo for the full list with descriptions.
+    </p>
+  </section>
+
+  <!-- ─── 17 Why this shape ────────────────────────────────── -->
+  <section class="section" id="why">
+    <div class="section-marker rose">
+      <span class="num">17</span>
+      <span class="pip"></span>
+      <span>Why this shape</span>
+    </div>
+    <h2>Triage is the gate. Backlog is the garden. Focus is right now.</h2>
+    <p class="lede">
+      The architecture is opinionated. Here's why.
+    </p>
+
+    <p>
+      Most task tools optimize for ticking boxes. The hard part isn't ticking the box, it's deciding which boxes are worth having. So Loops OS makes the decision the visible thing. Capture is cheap. Triage is mandatory. Anything that hasn't been triaged doesn't get to vote in any other view. The undecided don't get a seat at the table.
+    </p>
+
+    <p>
+      Capacity caps are not productivity hacks, they're discipline made structural. If your P1:Boss bucket already has eight items and a ninth shows up, the system makes you choose. Either rerank, defer, or override (and log that override). Most "I have too much going on" weeks come from accepting things in the moment that you wouldn't have accepted on reflection. The cap forces the reflection.
+    </p>
+
+    <p>
+      Plain markdown is ownership. The day this app is unmaintained, your data is still readable. The day you want to switch to a different tool, you don't migrate. The day a skill writes a note, you can read it in any text editor. Lock-in is the silent killer of personal-system tools.
+    </p>
+
+    <p>
+      Skills are composable verbs. <code>/triage</code> is a verb that operates on <code>00-Inbox/</code>. <code>/distill</code> is a verb that operates on a raw note. <code>/reflect</code> is a verb that operates on the last week's loops + checkpoints. They share the vault as a substrate. New verb? Add a markdown file to <code>.claude/commands/</code>. The system grows by addition, not by app updates.
+    </p>
+
+    <div class="pullquote">
+      <em>Empty Triage</em> is the goal state. Not "ten loops scheduled." Not "five things shipped today." A clean inbox where every undecided item has been decided.
+      <span class="attr">— the design principle</span>
+    </div>
+
+    <p>
+      Focus is right now because right now is when the work happens. Plan is for setting up right now. Backlog is for staging right now. Triage is for protecting right now from things that don't deserve to be there yet. Reflect is for noticing what right-now has been. The whole stack is in service of one moment: the actual one you're in.
+    </p>
+  </section>
+
+  <!-- ─── Footer ───────────────────────────────────────────── -->
+  <footer>
+    Loops OS · A complete guide<br/>
+    Source on <a href="https://github.com/annamarie-kelly/loops-os" target="_blank" rel="noopener">GitHub</a>. Built for humans with too many open tabs in their head.<br/>
+    Last updated <span id="lastUpdated">2026-05-05</span>.
+  </footer>
+</main>
+
+<!-- ─── Chat panel ─────────────────────────────────────────── -->
+<button class="chat-toggle" id="chatToggle" type="button" aria-label="Open chat panel">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+  </svg>
+</button>
+
+<aside class="chat-panel" id="chatPanel" aria-label="Guide chat">
+  <div class="chat-header">
+    <div>
+      <div class="chat-title">Ask the guide</div>
+      <div class="chat-subtitle">Search across all 17 sections</div>
+    </div>
+    <button class="chat-close" id="chatClose" type="button" aria-label="Close">×</button>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <!-- messages render here; empty state injected by JS -->
+  </div>
+  <div class="chat-footer">
+    <div class="chat-input-wrap">
+      <input class="chat-input" id="chatInput" type="text" placeholder="Ask anything about Loops OS..." autocomplete="off" />
+      <button class="chat-send" id="chatSend" type="button">Ask</button>
+    </div>
+    <div class="chat-foot-note">
+      <span>Local search</span>
+      <span style="opacity:0.5;">·</span>
+      <button class="connect" id="connectClaude" type="button">Connect Claude</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── Connect Claude modal (stub) ────────────────────────── -->
+<div class="modal-back" id="connectModal">
+  <div class="modal" role="dialog" aria-labelledby="connectTitle">
+    <div class="modal-eyebrow">Optional · v2</div>
+    <h3 id="connectTitle">Connect Claude for real chat</h3>
+    <p>
+      Default chat uses local search across the guide's sections. Paste an Anthropic API key here to upgrade to a real Claude conversation that has the whole guide as context.
+    </p>
+    <p style="font-size:11px; color: var(--ink-faint);">
+      Note: this is a v1 stub. Direct browser calls to Anthropic require a CORS-capable proxy; the field is preserved for when that's wired up.
+    </p>
+    <input class="modal-input" id="apiKeyInput" type="password" placeholder="sk-ant-... (stored in localStorage)" />
+    <div class="modal-actions">
+      <button class="btn-ghost" id="connectCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="connectSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ─── Theme toggle ───────────────────────────────────────────
+  const THEME_KEY = 'loops-os-guide:theme';
+  const root = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const themeGlyph = document.getElementById('themeGlyph');
+  const themeLabel = document.getElementById('themeLabel');
+
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    if (themeGlyph) themeGlyph.textContent = theme === 'dark' ? '◐' : '◑';
+    if (themeLabel) themeLabel.textContent = theme;
+  }
+
+  let initialTheme = 'dark';
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dark' || saved === 'light') {
+      initialTheme = saved;
+    } else {
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      initialTheme = prefersLight ? 'light' : 'dark';
+    }
+  } catch {}
+  applyTheme(initialTheme);
+
+  themeToggle && themeToggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch {}
+  });
+
+  // ─── Progress bar ───────────────────────────────────────────
+  const progress = document.getElementById('progressBar');
+  function updateProgress() {
+    const scrollTop = window.scrollY;
+    const docHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const pct = Math.min(1, scrollTop / docHeight);
+    progress.style.transform = `scaleX(${pct})`;
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('resize', updateProgress);
+  updateProgress();
+
+  // ─── Install command copy ──────────────────────────────────
+  const copyBtn = document.getElementById('installCopy');
+  const cmd = document.getElementById('installCmd');
+  if (copyBtn && cmd) {
+    copyBtn.addEventListener('click', async () => {
+      const text = cmd.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'copied ✓';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'copy';
+          copyBtn.classList.remove('copied');
+        }, 1600);
+      } catch {
+        // fallback: select the text
+        const range = document.createRange();
+        range.selectNodeContents(cmd);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+  }
+
+  // ─── Build the search index ────────────────────────────────
+  // Scan every <section> with an id; index its h2 + paragraphs + list items.
+  const sections = Array.from(document.querySelectorAll('main .section[id]'));
+  const INDEX = sections.map((sec) => {
+    const h2 = sec.querySelector('h2');
+    const title = h2 ? h2.textContent.trim() : sec.id;
+    const eyebrowEl = sec.querySelector('.section-marker > span:last-child');
+    const eyebrow = eyebrowEl ? eyebrowEl.textContent.trim() : '';
+    // First two paragraphs serve as the "preview"
+    const ps = Array.from(sec.querySelectorAll('p')).slice(0, 2)
+      .map(p => p.textContent.trim()).filter(Boolean);
+    const preview = ps.join(' ');
+    // Full text for token matching
+    const full = sec.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+    return {
+      id: sec.id,
+      title,
+      eyebrow,
+      preview: preview.slice(0, 280),
+      titleTokens: tokenize(title + ' ' + eyebrow),
+      tokens: tokenize(full),
+    };
+  });
+
+  function tokenize(s) {
+    return (s || '').toLowerCase().replace(/[^\w\s/]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+  }
+
+  const STOPWORDS = new Set(['the','a','an','and','or','but','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','to','of','in','on','at','by','for','with','about','from','into','through','that','this','these','those','it','its','as','if','then','than','what','how','why','when','where','can','i','you','your','we','our','my','me','they','them']);
+
+  function searchSections(query) {
+    const qTokens = tokenize(query).filter(t => !STOPWORDS.has(t));
+    if (qTokens.length === 0) return [];
+    return INDEX.map(sec => {
+      let score = 0;
+      const titleSet = new Set(sec.titleTokens);
+      const tokenSet = new Set(sec.tokens);
+      for (const qt of qTokens) {
+        if (titleSet.has(qt)) score += 8;          // big boost for title hit
+        else if (tokenSet.has(qt)) score += 2;
+        // partial / prefix match (3+ chars)
+        if (qt.length >= 3) {
+          for (const tt of titleSet) {
+            if (tt !== qt && tt.startsWith(qt)) { score += 4; break; }
+          }
+          for (const t of tokenSet) {
+            if (t !== qt && t.startsWith(qt)) { score += 1; break; }
+          }
+        }
+      }
+      return { sec, score };
+    })
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2);
+  }
+
+  // ─── Chat UI ───────────────────────────────────────────────
+  const HISTORY_KEY = 'loops-os-guide:chat-history';
+  const chatToggle = document.getElementById('chatToggle');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatClose = document.getElementById('chatClose');
+  const chatBody = document.getElementById('chatBody');
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+  const connectBtn = document.getElementById('connectClaude');
+
+  let history = [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) history = JSON.parse(raw);
+  } catch {}
+
+  function saveHistory() {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-40))); } catch {}
+  }
+
+  const SUGGESTIONS = [
+    'how does triage work?',
+    'what is the install command?',
+    'what shortcuts are there?',
+    'why plain markdown?',
+  ];
+
+  function renderEmpty() {
+    chatBody.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-empty';
+    wrap.innerHTML = `
+      <span class="glyph">{ ? }</span>
+      <strong>Ask the guide</strong>
+      Local search across all 17 sections. Click any result to scroll there.
+      <div class="suggestions"></div>
+    `;
+    const sugWrap = wrap.querySelector('.suggestions');
+    SUGGESTIONS.forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'suggestion';
+      b.textContent = s;
+      b.addEventListener('click', () => { chatInput.value = s; submit(); });
+      sugWrap.appendChild(b);
+    });
+    chatBody.appendChild(wrap);
+  }
+
+  function renderMessage(m) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + m.role;
+    if (m.role === 'user') {
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.textContent = m.text;
+      el.appendChild(bubble);
+    } else {
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      const pre = document.createElement('div');
+      pre.className = 'preamble';
+      pre.textContent = m.results && m.results.length ? 'Here\'s what I found' : 'No matches';
+      bubble.appendChild(pre);
+      if (m.results && m.results.length) {
+        m.results.forEach(r => {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'result';
+          const t = document.createElement('div');
+          t.className = 'result-title';
+          t.innerHTML = `<span>${escapeHtml(r.title)}</span><span class="arrow">→</span>`;
+          const q = document.createElement('div');
+          q.className = 'result-quote';
+          q.textContent = r.quote;
+          card.appendChild(t);
+          card.appendChild(q);
+          card.addEventListener('click', () => {
+            const target = document.getElementById(r.id);
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // Brief highlight
+              target.style.transition = 'background 600ms ease';
+              const original = target.style.background;
+              target.style.background = 'var(--mauve-fill)';
+              setTimeout(() => { target.style.background = original; }, 1200);
+            }
+            chatPanel.classList.remove('open');
+            chatToggle.classList.remove('hidden');
+          });
+          bubble.appendChild(card);
+        });
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'empty-result';
+        empty.textContent = 'No section matched. Try a different keyword, or scroll directly to a section from the top.';
+        bubble.appendChild(empty);
+      }
+      el.appendChild(bubble);
+    }
+    chatBody.appendChild(el);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function renderHistory() {
+    chatBody.innerHTML = '';
+    if (history.length === 0) {
+      renderEmpty();
+      return;
+    }
+    history.forEach(renderMessage);
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function firstSentences(text, n = 2) {
+    if (!text) return '';
+    const parts = text.split(/(?<=[.!?])\s+/);
+    return parts.slice(0, n).join(' ').trim();
+  }
+
+  function submit() {
+    const q = (chatInput.value || '').trim();
+    if (!q) return;
+    history.push({ role: 'user', text: q });
+    const matches = searchSections(q);
+    const results = matches.map(({ sec }) => ({
+      id: sec.id,
+      title: sec.title,
+      quote: firstSentences(sec.preview, 2) || sec.preview,
+    }));
+    history.push({ role: 'bot', results });
+    saveHistory();
+    chatInput.value = '';
+    renderHistory();
+  }
+
+  chatToggle && chatToggle.addEventListener('click', () => {
+    chatPanel.classList.add('open');
+    chatToggle.classList.add('hidden');
+    setTimeout(() => chatInput && chatInput.focus(), 280);
+    if (history.length === 0) renderEmpty();
+  });
+  chatClose && chatClose.addEventListener('click', () => {
+    chatPanel.classList.remove('open');
+    chatToggle.classList.remove('hidden');
+  });
+  chatSend && chatSend.addEventListener('click', submit);
+  chatInput && chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  // Esc closes chat (but only if it's open and input isn't doing something)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && chatPanel.classList.contains('open')) {
+      chatPanel.classList.remove('open');
+      chatToggle.classList.remove('hidden');
+    }
+  });
+
+  // ─── Connect Claude modal (stub) ───────────────────────────
+  const modal = document.getElementById('connectModal');
+  const cancelBtn = document.getElementById('connectCancel');
+  const saveBtn = document.getElementById('connectSave');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const KEY_KEY = 'loops-os-guide:api-key';
+
+  connectBtn && connectBtn.addEventListener('click', () => {
+    try { apiKeyInput.value = localStorage.getItem(KEY_KEY) || ''; } catch {}
+    modal.classList.add('open');
+    setTimeout(() => apiKeyInput.focus(), 80);
+  });
+  cancelBtn && cancelBtn.addEventListener('click', () => modal.classList.remove('open'));
+  modal && modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+  saveBtn && saveBtn.addEventListener('click', () => {
+    try {
+      const v = apiKeyInput.value.trim();
+      if (v) localStorage.setItem(KEY_KEY, v);
+      else localStorage.removeItem(KEY_KEY);
+    } catch {}
+    modal.classList.remove('open');
+  });
+
+  // ─── Initial render ────────────────────────────────────────
+  renderHistory();
+})();
+</script>
+</body>
+</html>

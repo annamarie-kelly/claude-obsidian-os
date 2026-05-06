@@ -562,6 +562,15 @@
   .screenshot {
     margin: 28px 0 32px;
   }
+  .screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid var(--edge);
+    background: var(--surface-soft);
+    box-shadow: var(--shadow-card);
+  }
   .screenshot-frame {
     aspect-ratio: 16 / 10;
     background:
@@ -1251,15 +1260,12 @@
 
     <h3>1. In-app: press <code>c</code></h3>
     <p>
-      A bottom-of-screen capture bar slides up. Type, hit Enter. Stays open for chained capture (rattle off five things in a row), Esc to close. Empty Enter is a no-op so you don't accidentally tear it down mid-thought.
+      A centered popup opens. Type, hit <span class="kbd">⌘↵</span>. Pick a priority on the spot (P0 / P1 / P2 / P3), and if it's P1 pick a stakeholder. P0 and P1 skip Triage and land directly in Backlog; P2 and P3 go to Triage as usual. Stays open for chained capture, Esc to close.
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="capture-bar">
-        <span class="screenshot-label">[Screenshot: capture bar slide-up overlay]</span>
-      </div>
-      <figcaption>The capture bar lands at the bottom edge. Whatever you type goes straight to Triage.</figcaption>
-      <!-- Replace with: <img src="screenshots/capture-bar.png" alt="Capture bar slide-up overlay"> -->
+      <img src="screenshots/capture-bar.png" alt="Capture popup, centered, with priority pills and stakeholder picker" />
+      <figcaption>Centered capture popup. Type, set priority, send. P0 / P1 skip Triage and land in Backlog.</figcaption>
     </figure>
 
     <h3>2. Chrome extension: <span class="kbd">⌘⇧L</span> from any tab</h3>
@@ -1293,11 +1299,8 @@
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="triage-mode">
-        <span class="screenshot-label">[Screenshot: Triage mode card with 1/2/3 keys]</span>
-      </div>
+      <img src="screenshots/triage-mode.png" alt="Triage card with three-key decision affordance" />
       <figcaption>One card. Three keys. Empty Triage is the goal state.</figcaption>
-      <!-- Replace with: <img src="screenshots/triage-mode.png" alt="Triage card view"> -->
     </figure>
 
     <h3>The three decisions</h3>
@@ -1329,11 +1332,8 @@
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="backlog-grouped">
-        <span class="screenshot-label">[Screenshot: Backlog grouped by P-level + stakeholder]</span>
-      </div>
-      <figcaption>Group by P-level, by stakeholder, by mode. Sort by recency, by difficulty. Whatever lens you need.</figcaption>
-      <!-- Replace with: <img src="screenshots/backlog.png" alt="Backlog with grouping"> -->
+      <img src="screenshots/backlog.png" alt="Backlog grouped by P-level and stakeholder" />
+      <figcaption>Group by P-level, by stakeholder, by mode. Sort by recency or difficulty. Whatever lens you need.</figcaption>
     </figure>
 
     <h3>P-levels</h3>
@@ -1361,11 +1361,8 @@
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="plan-canvas">
-        <span class="screenshot-label">[Screenshot: Plan mode week canvas with timeblocks]</span>
-      </div>
+      <img src="screenshots/plan-canvas.png" alt="Plan mode week canvas with timeblocks" />
       <figcaption>The schedule view. Calendar events in muted gray, loops in their P-level color.</figcaption>
-      <!-- Replace with: <img src="screenshots/plan-canvas.png" alt="Plan mode week view"> -->
     </figure>
 
     <p>
@@ -1389,11 +1386,8 @@
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="focus-mode">
-        <span class="screenshot-label">[Screenshot: Focus mode with single loop centered]</span>
-      </div>
-      <figcaption>One loop. Mark complete with a single key. Move on.</figcaption>
-      <!-- Replace with: <img src="screenshots/focus-mode.png" alt="Focus mode single loop"> -->
+      <img src="screenshots/focus-mode.png" alt="Focus mode showing a single active loop" />
+      <figcaption>One loop. Notes inline. Mark complete with a single key. Move on.</figcaption>
     </figure>
 
     <p>
@@ -1412,14 +1406,6 @@
     <p class="lede">
       Reflect surfaces the patterns under the activity. Where did the week's pressure go? What's been sitting in Triage too long? What did you ship for whom?
     </p>
-
-    <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="reflect-heatmap">
-        <span class="screenshot-label">[Screenshot: Reflect mode heatmap + stakeholder card]</span>
-      </div>
-      <figcaption>The heatmap colors days by dominant pressure type: building, improving, fixing, supporting.</figcaption>
-      <!-- Replace with: <img src="screenshots/reflect.png" alt="Reflect mode heatmap"> -->
-    </figure>
 
     <ul>
       <li><strong>Pressure heatmap</strong>: 30 days, four colors (sage / mauve / tan / rose) for the four pressure types. Patterns visible at a glance.</li>
@@ -1486,11 +1472,8 @@ tags: []
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="chrome-extension">
-        <span class="screenshot-label">[Screenshot: Chrome extension popup with selection prefilled]</span>
-      </div>
-      <figcaption>Selection becomes a markdown blockquote. Click the toggle to switch between Loop (triage) and Clip (vault file).</figcaption>
-      <!-- Replace with: <img src="screenshots/chrome-extension.png" alt="Chrome extension popup"> -->
+      <img src="screenshots/chrome-extension.png" alt="Loops Capture Chrome extension popup" />
+      <figcaption>Selection becomes a markdown blockquote. Toggle between Loop (triage) and Clip (vault file).</figcaption>
     </figure>
 
     <h3>Install</h3>
@@ -1578,11 +1561,8 @@ tags: []
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="system-panel">
-        <span class="screenshot-label">[Screenshot: System panel modal with status rows]</span>
-      </div>
-      <figcaption>The pattern: status icon, name, current state, then a "→ what this enables" hint.</figcaption>
-      <!-- Replace with: <img src="screenshots/system-panel.png" alt="System panel"> -->
+      <img src="screenshots/system-panel.png" alt="System panel showing connected integrations" />
+      <figcaption>The pattern: status icon, name, current state, then a "what this enables" hint.</figcaption>
     </figure>
 
     <p>Each row shows:</p>
@@ -1610,11 +1590,8 @@ tags: []
     </p>
 
     <figure class="screenshot">
-      <div class="screenshot-frame" data-screenshot="design-board">
-        <span class="screenshot-label">[Screenshot: Design Board with annotated screenshots]</span>
-      </div>
-      <figcaption>Paste, drag, annotate. Save writes a PNG plus a companion markdown file into the vault so the artifact lives next to your notes.</figcaption>
-      <!-- Replace with: <img src="screenshots/design-board.png" alt="Design Board canvas"> -->
+      <img src="screenshots/design-board.png" alt="Design Board canvas with annotated screenshots" />
+      <figcaption>Paste, drag, annotate. Save writes a PNG plus a companion markdown file into the vault.</figcaption>
     </figure>
 
     <h3>What you can do here</h3>

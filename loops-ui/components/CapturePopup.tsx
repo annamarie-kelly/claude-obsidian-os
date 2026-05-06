@@ -225,7 +225,7 @@ export function CapturePopup({
             }
           }}
           rows={3}
-          placeholder="What's loud right now?"
+          placeholder="Capture a thought."
           className="w-full text-[13px] text-ink bg-card border border-edge rounded-lg px-3 py-2.5 placeholder:text-ink-ghost/60 focus:outline-none focus:border-[var(--mauve)]/50 focus:ring-2 focus:ring-[var(--mauve)]/15 transition-all leading-relaxed resize-none"
           style={{ minHeight: 78, maxHeight: 130 }}
         />

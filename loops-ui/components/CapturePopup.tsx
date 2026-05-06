@@ -196,7 +196,7 @@ export function CapturePopup({
       onClick={onClose}
     >
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
         aria-hidden
       />
       <div
